@@ -1,7 +1,7 @@
 #!/bin/bash
-SBATCH --job-name=test_pcp_map       # Job name
-SBATCH --output=run_trial_output.txt # Standard output file
-SBATCH --error=run_trial_error.txt   # Standard error file
+# SBATCH --job-name=test_pcp_map       # Job name
+# SBATCH --output=run_trial_output.txt # Standard output file
+# SBATCH --error=run_trial_error.txt   # Standard error file
 
 #Load necessary modules (if needed)
 module load anaconda/2023a
