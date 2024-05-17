@@ -61,21 +61,17 @@ def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_
         data = pickle.load(f)
     
     ## CHECK DIM
-    x_data = data[:, 326:]
-    y_data = data[:, :326]
+    x_data = data[326:,:].T
+    y_data = data[:326,:].T
+
+    ##　SHOULD I LOG HERE?
     
-    # Split into train, validation, and test sets
+    # Split into train, validation, and test sets 
+    # ROWWISE SPLITTING
     x_train, x_temp, y_train, y_temp = train_test_split(x_data, y_data, test_size=test_ratio + valid_ratio, random_state=random_state)
     valid_ratio_adjusted = valid_ratio / (test_ratio + valid_ratio)
     x_valid, x_test, y_valid, y_test = train_test_split(x_temp, y_temp, test_size=valid_ratio_adjusted, random_state=random_state)
     
-    # Normalize the data
-    train_mean = x_train.mean(axis=0)
-    train_std = x_train.std(axis=0)
-    x_train = (x_train - train_mean) / train_std
-    x_valid = (x_valid - train_mean) / train_std
-    x_test = (x_test - train_mean) / train_std
-
     # Apply PCA 
     pca_x = PCA(n_components=pca_components_x)
     x_train = pca_x.fit_transform(x_train)
@@ -86,6 +82,15 @@ def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_
     y_train = pca_y.fit_transform(y_train)
     y_valid = pca_y.transform(y_valid)
     y_test = pca_y.transform(y_test)
+
+    # Normalize the data
+    train_mean = x_train.mean(axis=1)
+    train_std = x_train.std(axis=1)
+    x_train = (x_train - train_mean) / train_std
+    x_valid = (x_valid - train_mean) / train_std
+    x_test = (x_test - train_mean) / train_std
+
+    ## DO WE NEED TO NORMALIZE Y?
 
     return (torch.tensor(x_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32)), \
            (torch.tensor(x_valid, dtype=torch.float32), torch.tensor(y_valid, dtype=torch.float32)), \
