@@ -8,7 +8,6 @@ import scipy.io
 import pickle
 from torch import distributions
 from lib.dataloader import dataloader
-from datasets.shallow_water import load_swdata
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 from src.icnn import PICNN
