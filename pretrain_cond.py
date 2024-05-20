@@ -15,8 +15,6 @@ from src.pcpmap import PCPMap
 from lib.utils import makedirs, get_logger, AverageMeter
 from sklearn.decomposition import PCA
 
-import argparse
-
 """
 argument parser for hyper parameters and model handling
 """
