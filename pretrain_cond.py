@@ -7,7 +7,7 @@ import torch
 import scipy.io
 import pickle
 from torch import distributions
-from lib.dataloader import dataloader
+# from lib.dataloader import dataloader
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 from src.icnn import PICNN
@@ -34,12 +34,11 @@ parser.add_argument('--random_state', type=int, default=42, help="Random state f
 
 parser.add_argument('--save',           type=str, default='experiments/tabcond', help="Directory to save results")
 
-# parser.add_argument('--out_dim',        type=int, default=1, help="output dimension")
 parser.add_argument('--clip',           type=bool, default=True, help="whether clipping the weights or not")
 parser.add_argument('--tol',            type=float, default=1e-12, help="LBFGS tolerance")
-# parser.add_argument('--num_trials',     type=int, default=1, help="pilot run number of trials")
+parser.add_argument('--num_trials',     type=int, default=1, help="pilot run number of trials")
 
-args = parser.parse_args()
+args, unknown = parser.parse_known_args()
 
 sStartTime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
@@ -56,15 +55,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_components_x, pca_components_y):
     with open(data_path, 'rb') as f:
         data = pickle.load(f)
+
+    a_log = np.log(data[326:328, :])
+    data[326:328, :] = a_log
     
-    ## CHECK DIM
     x_data = data[326:,:].T
     y_data = data[:326,:].T
-
-    ##　SHOULD I LOG HERE?
     
     # Split into train, validation, and test sets 
-    # ROWWISE SPLITTING
     x_train, x_temp, y_train, y_temp = train_test_split(x_data, y_data, test_size=test_ratio + valid_ratio, random_state=random_state)
     valid_ratio_adjusted = valid_ratio / (test_ratio + valid_ratio)
     x_valid, x_test, y_valid, y_test = train_test_split(x_temp, y_temp, test_size=valid_ratio_adjusted, random_state=random_state)
@@ -81,13 +79,17 @@ def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_
     y_test = pca_y.transform(y_test)
 
     # Normalize the data
-    train_mean = x_train.mean(axis=1)
-    train_std = x_train.std(axis=1)
+    train_mean = x_train.mean(axis=0)
+    train_std = x_train.std(axis=0)
     x_train = (x_train - train_mean) / train_std
     x_valid = (x_valid - train_mean) / train_std
     x_test = (x_test - train_mean) / train_std
 
-    ## DO WE NEED TO NORMALIZE Y?
+    train_mean = y_train.mean(axis=0)
+    train_std = y_train.std(axis=0)
+    y_train = (y_train - train_mean) / train_std
+    y_valid = (y_valid - train_mean) / train_std
+    y_test = (y_test - train_mean) / train_std
 
     return (torch.tensor(x_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32)), \
            (torch.tensor(x_valid, dtype=torch.float32), torch.tensor(y_valid, dtype=torch.float32)), \
@@ -134,50 +136,50 @@ if __name__ == '__main__':
     prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device),
                                                     torch.eye(input_x_dim).to(device))
     
-    # build PCP-Map
-    input_y_dim = args.pca_components_y
+    for trial in range(args.num_trials):
+        # build PCP-Map
+        input_y_dim = args.pca_components_y
 
-    width = np.random.choice(width_list)
-    ### width_y TO BE CHANGED
-    width_y = width
-    batch_size = int(np.random.choice(batch_size_list))
-    num_layers = np.random.choice(depth_list)
-    lr = np.random.choice(lr_list)
-    
-    ## OUT_DIM = 1 FOR NOW
-    picnn = PICNN(input_x_dim, args.input_y_dim, width, width_y, args.out_dim, num_layers, reparam=reparam)
-    pcpmap = PCPMap(prior_picnn, picnn).to(device)
-    optimizer = torch.optim.Adam(pcpmap.parameters(), lr=lr)
+        width = np.random.choice(width_list)
+        ### width_y TO BE CHANGED
+        width_y = width
+        batch_size = int(np.random.choice(batch_size_list))
+        num_layers = np.random.choice(depth_list)
+        lr = np.random.choice(lr_list)
+        
+        # Output_dim = 1 as the potential is scalar
+        picnn = PICNN(input_x_dim, args.input_y_dim, width, width_y, 1, num_layers, reparam=reparam)
+        pcpmap = PCPMap(prior_picnn, picnn).to(device)
+        optimizer = torch.optim.Adam(pcpmap.parameters(), lr=lr)
 
-    params_hist.loc[len(params_hist.index)] = [batch_size, lr, width, width_y, num_layers]
+        params_hist.loc[len(params_hist.index)] = [batch_size, lr, width, width_y, num_layers]
 
-    num_epochs = args.num_epochs
-    for epoch in range(num_epochs):
-        pcpmap.train()
-        for x_batch, y_batch in train_loader:
-            x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-            optimizer.zero_grad()
-            loss = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
-            loss.backward()
-            optimizer.step()
+        num_epochs = args.num_epochs
+        for epoch in range(num_epochs):
+            pcpmap.train()
+            for x_batch, y_batch in train_loader:
+                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+                optimizer.zero_grad()
+                loss = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
+                loss.backward()
+                optimizer.step()
 
-            # non-negative constraint (CHECK)
-            if args.clip is True:
-                    for lw in pcpmap.picnn.Lw:
-                        with torch.no_grad():
-                            lw.weight.data = pcpmap.picnn.nonneg(lw.weight)
-                            
-    valLossMeterPICNN = AverageMeter()
-    with torch.no_grad():
+                # non-negative constraint (CHECK)
+                if args.clip is True:
+                        for lw in pcpmap.picnn.Lw:
+                            with torch.no_grad():
+                                lw.weight.data = pcpmap.picnn.nonneg(lw.weight)
+                                
+        valLossMeterPICNN = AverageMeter()
         for x_batch, y_batch in valid_loader:
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
             mean_valid_loss_picnn = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
             valLossMeterPICNN.update(mean_valid_loss_picnn.item(), x_batch.shape[0])
-        
-    val_loss_picnn = valLossMeterPICNN.avg
-    log_message = '{:05d}  {:9.3e}'.format(epoch+1, val_loss_picnn)
-    logger.info(log_message)
-    valid_hist.loc[len(valid_hist.index)] = [val_loss_picnn]
+            
+        val_loss_picnn = valLossMeterPICNN.avg
+        log_message = '{:05d}  {:9.3e}'.format(epoch+1, val_loss_picnn)
+        logger.info(log_message)
+        valid_hist.loc[len(valid_hist.index)] = [val_loss_picnn]
 
     params_hist.to_csv(os.path.join(args.save, '%s_params_hist.csv' % args.data))
     valid_hist.to_csv(os.path.join(args.save, '%s_valid_hist.csv' % args.data))
