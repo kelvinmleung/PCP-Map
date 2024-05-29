@@ -29,7 +29,7 @@ parser.add_argument('--num_epochs', type=int, default=1, help="Number of pre-tra
 parser.add_argument('--test_ratio', type=float, default=0.10, help="Test set ratio")
 parser.add_argument('--valid_ratio', type=float, default=0.10, help="Validation set ratio")
 parser.add_argument('--random_state', type=int, default=42, help="Random state for splitting dataset")
-parser.add_argument('--save', type=str, default='experiments/tabcond', help="Directory to save results")
+parser.add_argument('--save', type=str, default='~/code/PCP-Map/experiments/tabcond', help="Directory to save results")
 parser.add_argument('--clip', type=bool, default=True, help="Whether to clip the weights or not")
 parser.add_argument('--tol', type=float, default=1e-12, help="LBFGS tolerance")
 parser.add_argument('--num_trials', type=int, default=5, help="Number of pilot runs")
