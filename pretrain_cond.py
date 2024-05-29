@@ -106,7 +106,7 @@ if __name__ == '__main__':
     lr_list = np.array([0.01, 0.001, 0.0001])
 
     # Load data
-    data = np.load(args.data_path, allow_pickle=True)
+    data = np.load(os.path.expanduser(args.data_path), allow_pickle=True)
     
     (train_x, train_y), (valid_x, valid_y), (test_x, test_y) = load_data(
         data, args.input_x_dim, args.input_y_dim, args.test_ratio, args.valid_ratio, args.random_state, args.pca_components)
