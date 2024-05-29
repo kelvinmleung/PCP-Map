@@ -109,13 +109,6 @@ if __name__ == '__main__':
     data = np.load(os.path.expanduser(args.data_path), allow_pickle=True)
     print(data.shape)
     
-    (train_x, train_y), (valid_x, valid_y), (test_x, test_y) = load_data(
-        data, args.test_ratio, args.valid_ratio, args.random_state, args.pca_components_x, args.pca_components_y)
-
-    train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=args.batch_size, shuffle=True)
-    valid_loader = DataLoader(TensorDataset(valid_x, valid_y), batch_size=args.batch_size, shuffle=False)
-    test_loader = DataLoader(TensorDataset(test_x, test_y), batch_size=args.batch_size, shuffle=False)
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Multivariate Gaussian as Reference
@@ -133,6 +126,13 @@ if __name__ == '__main__':
         batch_size = int(np.random.choice(batch_size_list))
         num_layers = np.random.choice(depth_list)
         lr = np.random.choice(lr_list)
+
+        (train_x, train_y), (valid_x, valid_y), (test_x, test_y) = load_data(
+        data, args.test_ratio, args.valid_ratio, args.random_state, args.pca_components_x, args.pca_components_y)
+
+        train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=args.batch_size, shuffle=True)
+        valid_loader = DataLoader(TensorDataset(valid_x, valid_y), batch_size=args.batch_size, shuffle=False)
+        test_loader = DataLoader(TensorDataset(test_x, test_y), batch_size=args.batch_size, shuffle=False)
 
         picnn = PICNN(input_x_dim, input_y_dim, width, width_y, 1, num_layers, reparam=reparam).to(device)
         pcpmap = PCPMap(prior_picnn, picnn).to(device)
