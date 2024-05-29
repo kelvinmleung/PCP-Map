@@ -20,6 +20,7 @@ argument parser for hyper parameters and model handling
 """
 # Define argument parser
 parser = argparse.ArgumentParser('PCP-Map Pretraining')
+parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
 parser.add_argument('--input_x_dim', type=int, default=328, help="Input data convex dimension")
 parser.add_argument('--input_y_dim', type=int, default=326, help="Input data non-convex dimension")
 parser.add_argument('--pca_components_x', type=int, default=40, help="Number of PCA components for x data")
@@ -44,7 +45,6 @@ logger.info(args)
 
 # GPU Device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 # Data loading function
 def load_data(data, test_ratio, valid_ratio, random_state, pca_components_x, pca_components_y):
@@ -106,8 +106,10 @@ if __name__ == '__main__':
     lr_list = np.array([0.01, 0.001, 0.0001])
 
     # Load data
+    data = np.load(args.data_path, allow_pickle=True)
+    
     (train_x, train_y), (valid_x, valid_y), (test_x, test_y) = load_data(
-        args.data_path, args.input_x_dim, args.input_y_dim, args.test_ratio, args.valid_ratio, args.random_state, args.pca_components)
+        data, args.input_x_dim, args.input_y_dim, args.test_ratio, args.valid_ratio, args.random_state, args.pca_components)
 
     train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=args.batch_size, shuffle=True)
     valid_loader = DataLoader(TensorDataset(valid_x, valid_y), batch_size=args.batch_size, shuffle=False)
