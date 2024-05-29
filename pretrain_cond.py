@@ -20,24 +20,18 @@ argument parser for hyper parameters and model handling
 """
 # Define argument parser
 parser = argparse.ArgumentParser('PCP-Map Pretraining')
-parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
 parser.add_argument('--input_x_dim', type=int, default=328, help="Input data convex dimension")
 parser.add_argument('--input_y_dim', type=int, default=326, help="Input data non-convex dimension")
-
 parser.add_argument('--pca_components_x', type=int, default=40, help="Number of PCA components for x data")
 parser.add_argument('--pca_components_y', type=int, default=40, help="Number of PCA components for y data")
 parser.add_argument('--num_epochs', type=int, default=1, help="Number of pre-training epochs")
-
 parser.add_argument('--test_ratio', type=float, default=0.10, help="Test set ratio")
 parser.add_argument('--valid_ratio', type=float, default=0.10, help="Validation set ratio")
 parser.add_argument('--random_state', type=int, default=42, help="Random state for splitting dataset")
-
-parser.add_argument('--save',           type=str, default='experiments/tabcond', help="Directory to save results")
-
-parser.add_argument('--clip',           type=bool, default=True, help="whether clipping the weights or not")
-parser.add_argument('--tol',            type=float, default=1e-12, help="LBFGS tolerance")
-parser.add_argument('--num_trials',     type=int, default=1, help="pilot run number of trials")
-
+parser.add_argument('--save', type=str, default='experiments/tabcond', help="Directory to save results")
+parser.add_argument('--clip', type=bool, default=True, help="Whether to clip the weights or not")
+parser.add_argument('--tol', type=float, default=1e-12, help="LBFGS tolerance")
+parser.add_argument('--num_trials', type=int, default=5, help="Number of pilot runs")
 args, unknown = parser.parse_known_args()
 
 sStartTime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -52,22 +46,18 @@ logger.info(args)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_components_x, pca_components_y):
-    with open(data_path, 'rb') as f:
-        data = pickle.load(f)
-
+# Data loading function
+def load_data(data, test_ratio, valid_ratio, random_state, pca_components_x, pca_components_y):
     a_log = np.log(data[326:328, :])
     data[326:328, :] = a_log
-    
-    x_data = data[326:,:].T
-    y_data = data[:326,:].T
-    
-    # Split into train, validation, and test sets 
+
+    x_data = data[326:, :].T
+    y_data = data[:326, :].T
+
     x_train, x_temp, y_train, y_temp = train_test_split(x_data, y_data, test_size=test_ratio + valid_ratio, random_state=random_state)
     valid_ratio_adjusted = valid_ratio / (test_ratio + valid_ratio)
     x_valid, x_test, y_valid, y_test = train_test_split(x_temp, y_temp, test_size=valid_ratio_adjusted, random_state=random_state)
-    
-    # Apply PCA 
+
     pca_x = PCA(n_components=pca_components_x)
     x_train = pca_x.fit_transform(x_train)
     x_valid = pca_x.transform(x_valid)
@@ -78,18 +68,17 @@ def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_
     y_valid = pca_y.transform(y_valid)
     y_test = pca_y.transform(y_test)
 
-    # Normalize the data
     train_mean = x_train.mean(axis=0)
     train_std = x_train.std(axis=0)
     x_train = (x_train - train_mean) / train_std
     x_valid = (x_valid - train_mean) / train_std
     x_test = (x_test - train_mean) / train_std
 
-    train_mean = y_train.mean(axis=0)
-    train_std = y_train.std(axis=0)
-    y_train = (y_train - train_mean) / train_std
-    y_valid = (y_valid - train_mean) / train_std
-    y_test = (y_test - train_mean) / train_std
+    y_train_mean = y_train.mean(axis=0)
+    y_train_std = y_train.std(axis=0)
+    y_train = (y_train - y_train_mean) / y_train_std
+    y_valid = (y_valid - y_train_mean) / y_train_std
+    y_test = (y_test - y_train_mean) / y_train_std
 
     return (torch.tensor(x_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32)), \
            (torch.tensor(x_valid, dtype=torch.float32), torch.tensor(y_valid, dtype=torch.float32)), \
@@ -97,8 +86,8 @@ def load_data(data_path, test_ratio, valid_ratio, batch_size, random_state, pca_
 
 if __name__ == '__main__':
 
-    makedirs(args.save_dir)
-    logger = get_logger(logpath=os.path.join(args.save_dir, 'logs'), filepath=os.path.abspath(__file__), saving=True)
+    makedirs(args.save)
+    logger = get_logger(logpath=os.path.join(args.save, 'logs'), filepath=os.path.abspath(__file__), saving=True)
     logger.info("Starting pretraining at " + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     logger.info(args)
 
@@ -126,36 +115,31 @@ if __name__ == '__main__':
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if args.clip is True:
-        reparam = False
-    else:
-        reparam = True
-
     # Multivariate Gaussian as Reference
     input_x_dim = args.pca_components_x
     prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device),
                                                     torch.eye(input_x_dim).to(device))
     
     for trial in range(args.num_trials):
-        # build PCP-Map
+        reparam = not args.clip
         input_y_dim = args.pca_components_y
 
         width = np.random.choice(width_list)
-        ### width_y TO BE CHANGED
+        # width_y can be varied
         width_y = width
         batch_size = int(np.random.choice(batch_size_list))
         num_layers = np.random.choice(depth_list)
         lr = np.random.choice(lr_list)
-        
-        # Output_dim = 1 as the potential is scalar
-        picnn = PICNN(input_x_dim, args.input_y_dim, width, width_y, 1, num_layers, reparam=reparam)
+
+        picnn = PICNN(input_x_dim, input_y_dim, width, width_y, 1, num_layers, reparam=reparam).to(device)
         pcpmap = PCPMap(prior_picnn, picnn).to(device)
         optimizer = torch.optim.Adam(pcpmap.parameters(), lr=lr)
 
-        params_hist.loc[len(params_hist.index)] = [batch_size, lr, width, width_y, num_layers]
+        # Log the hyperparameters
+        logger.info(f"Trial {trial+1}: batch_size={batch_size}, lr={lr}, width={width}, width_y={width_y}, depth={num_layers}")
+        params_hist.loc[len(params_hist.index)] = [trial+1, batch_size, lr, width, width_y, num_layers]
 
-        num_epochs = args.num_epochs
-        for epoch in range(num_epochs):
+        for epoch in range(args.num_epochs):
             pcpmap.train()
             for x_batch, y_batch in train_loader:
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
@@ -164,22 +148,22 @@ if __name__ == '__main__':
                 loss.backward()
                 optimizer.step()
 
-                # non-negative constraint (CHECK)
-                if args.clip is True:
-                        for lw in pcpmap.picnn.Lw:
-                            with torch.no_grad():
-                                lw.weight.data = pcpmap.picnn.nonneg(lw.weight)
-                                
+                if args.clip:
+                    for lw in pcpmap.picnn.Lw:
+                        with torch.no_grad():
+                            lw.weight.data = pcpmap.picnn.nonneg(lw.weight)
+
         valLossMeterPICNN = AverageMeter()
+
         for x_batch, y_batch in valid_loader:
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
             mean_valid_loss_picnn = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
             valLossMeterPICNN.update(mean_valid_loss_picnn.item(), x_batch.shape[0])
-            
-        val_loss_picnn = valLossMeterPICNN.avg
-        log_message = '{:05d}  {:9.3e}'.format(epoch+1, val_loss_picnn)
-        logger.info(log_message)
-        valid_hist.loc[len(valid_hist.index)] = [val_loss_picnn]
 
-    params_hist.to_csv(os.path.join(args.save, '%s_params_hist.csv' % args.data))
-    valid_hist.to_csv(os.path.join(args.save, '%s_valid_hist.csv' % args.data))
+        val_loss_picnn = valLossMeterPICNN.avg
+        log_message = f'Trial {trial+1:02d}: Validation Loss = {val_loss_picnn:.3e}'
+        logger.info(log_message)
+        valid_hist.loc[len(valid_hist.index)] = [trial+1, val_loss_picnn]
+
+    params_hist.to_csv(os.path.join(args.save, 'params_hist.csv'), index=False)
+    valid_hist.to_csv(os.path.join(args.save, 'valid_hist.csv'), index=False)
