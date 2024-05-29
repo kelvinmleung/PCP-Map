@@ -91,8 +91,8 @@ if __name__ == '__main__':
     logger.info("Starting pretraining at " + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     logger.info(args)
 
-    columns_params = ["batchsz", "lr", "width", "width_y", "depth"]
-    columns_valid = ["picnn_nll"]
+    columns_params = ["trial","batchsz", "lr", "width", "width_y", "depth"]
+    columns_valid = ["trial","picnn_nll"]
     params_hist = pd.DataFrame(columns=columns_params)
     valid_hist = pd.DataFrame(columns=columns_valid)
 
@@ -104,10 +104,6 @@ if __name__ == '__main__':
     depth_list = np.array([2, 3, 4, 5, 6])
     batch_size_list =  np.array([32, 64, 128])
     lr_list = np.array([0.01, 0.001, 0.0001])
-
-    # Load data
-    data = np.load(os.path.expanduser(args.data_path), allow_pickle=True)
-    print(data.shape)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -117,6 +113,10 @@ if __name__ == '__main__':
                                                     torch.eye(input_x_dim).to(device))
     
     for trial in range(args.num_trials):
+        # Load data
+        data = np.load(os.path.expanduser(args.data_path), allow_pickle=True)
+        print(data.shape)
+
         reparam = not args.clip
         input_y_dim = args.pca_components_y
 
