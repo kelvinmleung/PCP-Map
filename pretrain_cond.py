@@ -145,7 +145,7 @@ if __name__ == '__main__':
         for epoch in range(args.num_epochs):
             pcpmap.train()
             for x_batch, y_batch in train_loader:
-                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+                x_batch, y_batch = x_batch.to(device).requires_grad_(), y_batch.to(device).requires_grad_()
                 optimizer.zero_grad()
                 loss = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
                 loss.backward()
