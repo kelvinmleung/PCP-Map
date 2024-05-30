@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-import torch.func as func
+import functorch as func
 from lib.utils import AverageMeter
 
 
