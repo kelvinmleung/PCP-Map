@@ -64,6 +64,7 @@ class PCPMap(nn.Module):
         :param y: observation/data component of the samples from the target joint distribution
         :return: log-likelihood
         """
+        x = x.detach().requires_grad_(True)
         zx = self.gxinv(x, y)
         hessian = self.gxinv_grad(x, y)
         logprob = self.prior.log_prob(zx)
