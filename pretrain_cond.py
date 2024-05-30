@@ -115,7 +115,6 @@ if __name__ == '__main__':
     for trial in range(args.num_trials):
         # Load data
         data = np.load(os.path.expanduser(args.data_path), allow_pickle=True)
-        print(data.shape)
 
         reparam = not args.clip
         input_y_dim = args.pca_components_y
