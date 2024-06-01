@@ -47,42 +47,44 @@ logger.info(args)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Data loading function
-def load_data(data, test_ratio, valid_ratio, random_state, pca_components_x, pca_components_y):
+def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_components_x, pca_components_y):
+    # enforce positivity
+    # below the row_numbers are specified according to remote sensing context
     a_log = np.log(data[326:328, :])
     data[326:328, :] = a_log
 
     x_data = data[326:, :].T
     y_data = data[:326, :].T
 
-    x_train, x_temp, y_train, y_temp = train_test_split(x_data, y_data, test_size=test_ratio + valid_ratio, random_state=random_state)
-    valid_ratio_adjusted = valid_ratio / (test_ratio + valid_ratio)
-    x_valid, x_test, y_valid, y_test = train_test_split(x_temp, y_temp, test_size=valid_ratio_adjusted, random_state=random_state)
-
     pca_x = PCA(n_components=pca_components_x)
-    x_train = pca_x.fit_transform(x_train)
-    x_valid = pca_x.transform(x_valid)
-    x_test = pca_x.transform(x_test)
-
+    x_data = pca_x.fit_transform(x_data)
     pca_y = PCA(n_components=pca_components_y)
-    y_train = pca_y.fit_transform(y_train)
-    y_valid = pca_y.transform(y_valid)
-    y_test = pca_y.transform(y_test)
+    y_data = pca_y.fit_transform(y_data)
 
-    train_mean = x_train.mean(axis=0)
-    train_std = x_train.std(axis=0)
-    x_train = (x_train - train_mean) / train_std
-    x_valid = (x_valid - train_mean) / train_std
-    x_test = (x_test - train_mean) / train_std
+    data = np.concatenate((x_data, y_data), axis=1)
 
-    y_train_mean = y_train.mean(axis=0)
-    y_train_std = y_train.std(axis=0)
-    y_train = (y_train - y_train_mean) / y_train_std
-    y_valid = (y_valid - y_train_mean) / y_train_std
-    y_test = (y_test - y_train_mean) / y_train_std
+    # split data and convert to tensor
+    train, valid = train_test_split(
+        data, test_size=test_ratio,
+        random_state=random_state
+    )
+    train_sz = train.shape[0]
 
-    return (torch.tensor(x_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32)), \
-           (torch.tensor(x_valid, dtype=torch.float32), torch.tensor(y_valid, dtype=torch.float32)), \
-           (torch.tensor(x_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32))
+    # convert to tensor
+    train_data = torch.tensor(train, dtype=torch.float32)
+    valid_data = torch.tensor(valid, dtype=torch.float32)
+
+    # load train data
+    trn_loader = DataLoader(
+        train_data,
+        batch_size=batch_size, shuffle=True
+    )
+    vld_loader = DataLoader(
+        valid_data,
+        batch_size=batch_size, shuffle=True
+    )
+
+    return trn_loader, vld_loader, train_sz
 
 if __name__ == '__main__':
 
