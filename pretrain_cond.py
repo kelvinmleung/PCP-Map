@@ -112,7 +112,7 @@ if __name__ == '__main__':
         lr = np.random.choice(lr_list)
 
         # load data
-        data = np.load("177.p", allow_pickle=True)
+        data = np.load(args.data_path, allow_pickle=True)
         train_loader, valid_loader, _ = load_data(
             data, args.test_ratio, args.valid_ratio, batch_size, args.random_state, args.pca_components_x, args.pca_components_y)
 
@@ -159,5 +159,7 @@ if __name__ == '__main__':
         logger.info(log_message)
         valid_hist.loc[len(valid_hist.index)] = [val_loss_picnn]
     
-    params_hist.to_csv(os.path.join(args.save, '%s_params_hist.csv' % args.data))
-    valid_hist.to_csv(os.path.join(args.save, '%s_valid_hist.csv' % args.data))
+    data_filename = os.path.basename(args.data_path)
+    data_filename = os.path.splitext(data_filename)[0]
+    params_hist.to_csv(os.path.join(args.save, f'{data_filename}_params_hist.csv'))
+    valid_hist.to_csv(os.path.join(args.save, f'{data_filename}_valid_hist.csv'))
