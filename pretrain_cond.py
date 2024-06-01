@@ -27,7 +27,7 @@ parser.add_argument('--pca_components_x', type=int, default=40, help="Number of 
 parser.add_argument('--pca_components_y', type=int, default=40, help="Number of PCA components for y data")
 parser.add_argument('--num_epochs', type=int, default=1, help="Number of pre-training epochs")
 parser.add_argument('--test_ratio', type=float, default=0.10, help="Test set ratio")
-parser.add_argument('--valid_ratio', type=float, default=0.10, help="Validation set ratio")
+parser.add_argument('--valid_ratio', type=float, default=0.10, help="Validation set ratio")data
 parser.add_argument('--random_state', type=int, default=42, help="Random state for splitting dataset")
 parser.add_argument('--save', type=str, default='~/code/PCP-Map/experiments/tabcond', help="Directory to save results")
 parser.add_argument('--clip', type=bool, default=True, help="Whether to clip the weights or not")
@@ -112,7 +112,8 @@ if __name__ == '__main__':
         lr = np.random.choice(lr_list)
 
         # load data
-        data = np.load(args.data_path, allow_pickle=True)
+        data_path = os.path.expanduser(args.data_path)
+        data = np.load(data_path, allow_pickle=True)
         train_loader, valid_loader, _ = load_data(
             data, args.test_ratio, args.valid_ratio, batch_size, args.random_state, args.pca_components_x, args.pca_components_y)
 
