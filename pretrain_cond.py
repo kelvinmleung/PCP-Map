@@ -87,14 +87,8 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     return trn_loader, vld_loader, train_sz
 
 if __name__ == '__main__':
-
-    makedirs(args.save)
-    logger = get_logger(logpath=os.path.join(args.save, 'logs'), filepath=os.path.abspath(__file__), saving=True)
-    logger.info("Starting pretraining at " + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-    logger.info(args)
-
-    columns_params = ["trial","batchsz", "lr", "width", "width_y", "depth"]
-    columns_valid = ["trial","picnn_nll"]
+    columns_params = ["batchsz", "lr", "width", "width_y", "depth"]
+    columns_valid = ["picnn_nll"]
     params_hist = pd.DataFrame(columns=columns_params)
     valid_hist = pd.DataFrame(columns=columns_valid)
 
@@ -106,21 +100,10 @@ if __name__ == '__main__':
     depth_list = np.array([2, 3, 4, 5, 6])
     batch_size_list =  np.array([32, 64, 128])
     lr_list = np.array([0.01, 0.001, 0.0001])
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Multivariate Gaussian as Reference
-    input_x_dim = args.pca_components_x
-    prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device),
-                                                    torch.eye(input_x_dim).to(device))
-    
     for trial in range(args.num_trials):
-        # Load data
-        data = np.load(os.path.expanduser(args.data_path), allow_pickle=True)
-
+        # randomly initialize hyperparameters
         reparam = not args.clip
-        input_y_dim = args.pca_components_y
-
         width = np.random.choice(width_list)
         # width_y can be varied
         width_y = width
@@ -128,30 +111,35 @@ if __name__ == '__main__':
         num_layers = np.random.choice(depth_list)
         lr = np.random.choice(lr_list)
 
-        (train_x, train_y), (valid_x, valid_y), (test_x, test_y) = load_data(
-        data, args.test_ratio, args.valid_ratio, args.random_state, args.pca_components_x, args.pca_components_y)
+        # load data
+        data = np.load("177.p", allow_pickle=True)
+        train_loader, valid_loader, _ = load_data(
+            data, args.test_ratio, args.valid_ratio, batch_size, args.random_state, args.pca_components_x, args.pca_components_y)
 
-        train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=batch_size, shuffle=True)
-        valid_loader = DataLoader(TensorDataset(valid_x, valid_y), batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(TensorDataset(test_x, test_y), batch_size=batch_size, shuffle=False)
+        # Multivariate Gaussian as Reference
+        input_x_dim = args.pca_components_x
+        prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device),
+                                                        torch.eye(input_x_dim).to(device))
 
+        # build PCP-Map
+        input_y_dim = args.pca_components_y
         picnn = PICNN(input_x_dim, input_y_dim, width, width_y, 1, num_layers, reparam=reparam).to(device)
         pcpmap = PCPMap(prior_picnn, picnn).to(device)
         optimizer = torch.optim.Adam(pcpmap.parameters(), lr=lr)
 
-        # Log the hyperparameters
-        logger.info(f"Trial {trial+1}: batch_size={batch_size}, lr={lr}, width={width}, width_y={width_y}, depth={num_layers}")
-        params_hist.loc[len(params_hist.index)] = [trial+1, batch_size, lr, width, width_y, num_layers]
+        params_hist.loc[len(params_hist.index)] = [batch_size, lr, width, width_y, num_layers]
 
         for epoch in range(args.num_epochs):
-            pcpmap.train()
-            for x_batch, y_batch in train_loader:
-                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+            for sample in train_loader:
+                y = sample[:,:input_y_dim].requires_grad_(True).to(device)
+                x = sample[:,input_y_dim:].requires_grad_(True).to(device)
+
                 optimizer.zero_grad()
-                loss = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
+                loss = -pcpmap.loglik_picnn(x, y).mean()
                 loss.backward()
                 optimizer.step()
 
+                # non-negative constraint
                 if args.clip:
                     for lw in pcpmap.picnn.Lw:
                         with torch.no_grad():
@@ -159,15 +147,17 @@ if __name__ == '__main__':
 
         valLossMeterPICNN = AverageMeter()
 
-        for x_batch, y_batch in valid_loader:
-            x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-            mean_valid_loss_picnn = -pcpmap.loglik_picnn(x_batch, y_batch).mean()
-            valLossMeterPICNN.update(mean_valid_loss_picnn.item(), x_batch.shape[0])
+        for valid_sample in valid_loader:
+            y_valid = valid_sample[:,:input_y_dim].requires_grad_(True).to(device)
+            x_valid = valid_sample[:,input_y_dim:].requires_grad_(True).to(device)
+            mean_valid_loss_picnn = -pcpmap.loglik_picnn(x_valid, y_valid).mean()
+            valLossMeterPICNN.update(mean_valid_loss_picnn.item(), x.shape[0])
 
         val_loss_picnn = valLossMeterPICNN.avg
-        log_message = f'Trial {trial+1:02d}: Validation Loss = {val_loss_picnn:.3e}'
-        logger.info(log_message)
-        valid_hist.loc[len(valid_hist.index)] = [trial+1, val_loss_picnn]
 
-    params_hist.to_csv(os.path.join(args.save, 'params_hist.csv'), index=False)
-    valid_hist.to_csv(os.path.join(args.save, 'valid_hist.csv'), index=False)
+        log_message = '{:05d}  {:9.3e}'.format(trial+1, val_loss_picnn)
+        logger.info(log_message)
+        valid_hist.loc[len(valid_hist.index)] = [val_loss_picnn]
+    
+    params_hist.to_csv(os.path.join(args.save, '%s_params_hist.csv' % args.data))
+    valid_hist.to_csv(os.path.join(args.save, '%s_valid_hist.csv' % args.data))
