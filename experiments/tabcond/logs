@@ -1,0 +1,80 @@
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_21_23_14
+Namespace(clip=True, data_path='retrieval', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=1, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_21_37_41
+Namespace(clip=True, data_path='retrieval', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_21_37_41
+Starting pretraining at 2024_05_28_21_37_41
+Namespace(clip=True, data_path='retrieval', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='retrieval', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_21_51_03
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_21_51_03
+Starting pretraining at 2024_05_28_21_51_03
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_21_51_15
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_21_51_15
+Starting pretraining at 2024_05_28_21_51_15
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_21_54_03
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_21_54_03
+Starting pretraining at 2024_05_28_21_54_03
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_21_57_00
+Namespace(clip=True, data_path='../ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_21_57_00
+Starting pretraining at 2024_05_28_21_57_00
+Namespace(clip=True, data_path='../ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='../ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_22_00_00
+Namespace(clip=True, data_path='~/code/PCP-Map/ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_22_00_00
+Starting pretraining at 2024_05_28_22_00_00
+Namespace(clip=True, data_path='~/code/PCP-Map/ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='~/code/PCP-Map/ens/177.p', input_x_dim=40, input_y_dim=40, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+start time: 2024_05_28_22_02_58
+Namespace(clip=True, data_path='~/code/PCP-Map/ens/177.p', input_x_dim=328, input_y_dim=326, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+/home/gridsan/xzheng/code/PCP-Map/pretrain_cond.py
+Starting pretraining at 2024_05_28_22_02_58
+Starting pretraining at 2024_05_28_22_02_58
+Namespace(clip=True, data_path='~/code/PCP-Map/ens/177.p', input_x_dim=328, input_y_dim=326, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+Namespace(clip=True, data_path='~/code/PCP-Map/ens/177.p', input_x_dim=328, input_y_dim=326, num_epochs=1, num_trials=5, pca_components_x=40, pca_components_y=40, random_state=42, save='experiments/tabcond', test_ratio=0.1, tol=1e-12, valid_ratio=0.1)
+trial  val_loss 
+trial  val_loss 
