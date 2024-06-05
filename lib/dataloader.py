@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
 
 
 def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_components_x, pca_components_y):
