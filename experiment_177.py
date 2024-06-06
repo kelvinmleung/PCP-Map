@@ -16,10 +16,8 @@ width = int(param_list[2])
 width_y = int(param_list[3])
 num_layers = int(param_list[4])
 
-
-
 os.system(
-    "python train_cond.py --data 'lv' --valid_freq 50 --early_stopping 20  --input_x_dim 4 --input_y_dim 9\
-     --num_layers_pi " + str(num_layers) + " --feature_dim " + str(width) + " --feature_y_dim " + str(width_y) +
-    " --batch_size " + str(batch_size) + " --lr " + str(lr) + " --save_test 1 --save 'experiments/tabcond/lv'"
+    "python train_cond.py --data_path 'PCP-Map/ens/177.p' --valid_freq 50 --early_stopping 20 --pca_components_x 40 --pca_components_y 40"
+    " --num_layers_pi " + str(num_layers) + " --feature_dim " + str(width) + " --feature_y_dim " + str(width_y) +
+    " --batch_size " + str(batch_size) + " --lr " + str(lr) + " --save_test 1 --save 'experiments/tabcond/177'"
 )
