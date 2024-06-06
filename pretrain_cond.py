@@ -73,7 +73,7 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     train_mean = np.mean(train, axis=0, keepdims=True)
     train_std = np.std(train, axis=0, keepdims=True)
     train_data = (train - train_mean) / train_std
-    valid_data = (valid - train_mean) / train_stdí
+    valid_data = (valid - train_mean) / train_std
 
     # convert to tensor
     train_data = torch.tensor(train, dtype=torch.float32)
