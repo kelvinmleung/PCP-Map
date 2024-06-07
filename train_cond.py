@@ -13,29 +13,29 @@ from sklearn.model_selection import train_test_split
 from src.icnn import PICNN
 from src.pcpmap import PCPMap
 from src.mmd import mmd
-from datasets.shallow_water import load_swdata
 from lib.utils import count_parameters, makedirs, get_logger, AverageMeter
+from sklearn.decomposition import PCA
 
 """
 argument parser for hyper parameters and model handling
 """
 
 parser = argparse.ArgumentParser('PCP-Map')
-parser.add_argument(
-    '--data', choices=['concrete', 'energy', 'yacht', 'lv', 'sw'], type=str, default='lv'
-)
-parser.add_argument('--input_x_dim',    type=int, default=4, help="input data convex dimension")
-parser.add_argument('--input_y_dim',    type=int, default=9, help="input data non-convex dimension")
+parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
+parser.add_argument('--input_x_dim',    type=int, default=328, help="input data convex dimension")
+parser.add_argument('--input_y_dim',    type=int, default=326, help="input data non-convex dimension")
 parser.add_argument('--feature_dim',    type=int, default=128, help="intermediate layer feature dimension")
 parser.add_argument('--feature_y_dim',  type=int, default=128, help="intermediate layer context dimension")
-parser.add_argument('--out_dim',        type=int, default=1, help="output dimension")
+parser.add_argument('--pca_components_x', type=int, default=40, help="Number of PCA components for x data")
+parser.add_argument('--pca_components_y', type=int, default=40, help="Number of PCA components for y data")
+
 parser.add_argument('--num_layers_pi',  type=int, default=2, help="depth of PICNN network")
 
 parser.add_argument('--clip',           type=bool, default=True, help="whether clipping the weights or not")
 parser.add_argument('--tol',            type=float, default=1e-6, help="LBFGS tolerance")
 
 parser.add_argument('--batch_size',     type=int, default=256, help="number of samples per batch")
-parser.add_argument('--num_epochs',     type=int, default=1000, help="number of training steps")
+parser.add_argument('--num_epochs',     type=int, default=10, help="number of training steps")
 parser.add_argument('--print_freq',     type=int, default=1, help="how often to print results to log")
 parser.add_argument('--valid_freq',     type=int, default=50, help="how often to run model on validation set")
 parser.add_argument('--early_stopping', type=int, default=20, help="early stopping of training based on validation")
@@ -48,7 +48,6 @@ parser.add_argument('--random_state',   type=int, default=42, help="random state
 
 parser.add_argument('--save_test',      type=int, default=1, help="if 1 then saves test numerics 0 if not")
 parser.add_argument('--save',           type=str, default='experiments/cond', help="define the save directory")
-parser.add_argument('--theta_pca',      type=int, default=0, help="project theta in for shallow water")
 
 args = parser.parse_args()
 
@@ -82,43 +81,45 @@ def update_lr_picnn(optimizer, n_vals_without_improvement):
             param_group["lr"] = args.lr / args.lr_drop**ndecs_picnn
 
 
-def load_data(data, test_ratio, valid_ratio, batch_size, random_state):
+def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_components_x, pca_components_y):
+    a_log = np.log(data[326:328, :])
+    data[326:328, :] = a_log
 
-    if data == 'lv':
-        # TODO change to correct path
-        dataset_load = scipy.io.loadmat('.../PCP-Map/datasets/lv_data.mat')
-        x_train = dataset_load['x_train']
-        y_train = dataset_load['y_train']
-        dataset = np.concatenate((x_train, y_train), axis=1)
-        # log transformation over theta
-        dataset[:, :4] = np.log(dataset[:, :4])
-        # split data and convert to tensor
-        train, valid = train_test_split(
-            dataset, test_size=valid_ratio,
-            random_state=random_state
-        )
-        train_sz = train.shape[0]
+    x_data = data[326:, :].T
+    y_data = data[:326, :].T
 
-        train_mean = np.mean(train, axis=0, keepdims=True)
-        train_std = np.std(train, axis=0, keepdims=True)
-        train_data = (train - train_mean) / train_std
-        valid_data = (valid - train_mean) / train_std
+    pca_x = PCA(n_components=pca_components_x)
+    x_data = pca_x.fit_transform(x_data)
+    pca_y = PCA(n_components=pca_components_y)
+    y_data = pca_y.fit_transform(y_data)
 
-        # convert to tensor
-        train_data = torch.tensor(train_data, dtype=torch.float32)
-        valid_data = torch.tensor(valid_data, dtype=torch.float32)
+    data = np.concatenate((x_data, y_data), axis=1)
 
-        # load train data
-        trn_loader = DataLoader(
-            train_data,
-            batch_size=batch_size, shuffle=True
-        )
-        vld_loader = DataLoader(
-            valid_data,
-            batch_size=batch_size, shuffle=True
-        )
-    else:
-        trn_loader, vld_loader, _, train_sz = dataloader(data, batch_size, test_ratio, valid_ratio, random_state)
+    # split data and convert to tensor
+    train, valid = train_test_split(
+        data, test_size=test_ratio,
+        random_state=random_state
+    )
+    train_sz = train.shape[0]
+
+    train_mean = np.mean(train, axis=0, keepdims=True)
+    train_std = np.std(train, axis=0, keepdims=True)
+    train_data = (train - train_mean) / train_std
+    valid_data = (valid - train_mean) / train_std
+
+    # convert to tensor
+    train_data = torch.tensor(train, dtype=torch.float32)
+    valid_data = torch.tensor(valid, dtype=torch.float32)
+
+    # load train data
+    trn_loader = DataLoader(
+        train_data,
+        batch_size=batch_size, shuffle=True
+    )
+    vld_loader = DataLoader(
+        valid_data,
+        batch_size=batch_size, shuffle=True
+    )
 
     return trn_loader, vld_loader, train_sz
 
@@ -153,34 +154,24 @@ if __name__ == '__main__':
 
     """Load Data"""
 
-    if args.data == 'sw':
-        _, train_loader, valid_data, n_train = load_swdata(args.batch_size)
-        if bool(args.theta_pca) is True:
-            x_full = train_loader.dataset[:, :args.input_x_dim]
-            x_full = x_full.view(-1, args.input_x_dim)
-            cov_x = x_full.T @ x_full
-            L, V = torch.linalg.eigh(cov_x)
-            # get the last dx columns in V
-            Vx = V[:, -14:].to(device)
-    else:
-        train_loader, valid_loader, n_train = load_data(args.data, args.test_ratio, args.valid_ratio,
-                                                        args.batch_size, args.random_state)
+    data_path = os.path.expanduser(args.data_path)
+    data = np.load(data_path, allow_pickle=True)
+
+    train_loader, valid_loader, n_train = load_data(data, args.test_ratio, args.valid_ratio,
+                                                    args.batch_size, args.random_state, args.pca_components_x, args.pca_components_y) 
 
     """Construct Model"""
-
-    if args.clip is True:
-        reparam = False
-    else:
-        reparam = True
+    reparam = not args.clip
 
     # Multivariate Gaussian as Reference
-    input_x_dim = args.input_x_dim
-    if args.data == 'sw' and bool(args.theta_pca) is True:
-        input_x_dim = 14
+
+    input_x_dim = args.pca_components_x
+    input_y_dim = args.pca_components_y
     prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device), torch.eye(input_x_dim).to(device))
+
     # build PCP-Map
-    picnn = PICNN(input_x_dim, args.input_y_dim, args.feature_dim, args.feature_y_dim,
-                  args.out_dim, args.num_layers_pi, reparam=reparam)
+    picnn = PICNN(input_x_dim, input_y_dim, args.feature_dim, args.feature_y_dim,
+                  1, args.num_layers_pi, reparam=reparam)
     pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
     optimizer = torch.optim.Adam(pcpmap.parameters(), lr=args.lr)
@@ -220,14 +211,8 @@ if __name__ == '__main__':
 
     for epoch in range(args.num_epochs):
         for i, sample in enumerate(train_loader):
-            if args.data == 'lv' or args.data == 'sw':
-                x = sample[:, :args.input_x_dim].requires_grad_(True).to(device)
-                if bool(args.theta_pca) is True:
-                    x = x @ Vx
-                y = sample[:, args.input_x_dim:].requires_grad_(True).to(device)
-            else:
-                x = sample[:, args.input_y_dim:].requires_grad_(True).to(device)
-                y = sample[:, :args.input_y_dim].requires_grad_(True).to(device)
+            y = sample[:,:input_y_dim].requires_grad_(True).to(device)
+            x = sample[:,input_y_dim:].requires_grad_(True).to(device)
 
             # start timer
             end = time.time()
@@ -258,39 +243,23 @@ if __name__ == '__main__':
                 logger.info(log_message)
 
             if itr % args.valid_freq == 0 or itr == total_itr:
+                vldtimeMeter = AverageMeter()
+                valLossMeterPICNN = AverageMeter()
+                for valid_sample in valid_loader:
+                    y_valid = valid_sample[:,:input_y_dim].requires_grad_(True).to(device)
+                    x_valid = valid_sample[:,input_y_dim:].requires_grad_(True).to(device)
 
-                if args.data == 'sw':
-                    x_valid = valid_data[:, :args.input_x_dim].requires_grad_(True).to(device)
-                    if bool(args.theta_pca) is True:
-                        x_valid = x_valid @ Vx
-                    y_valid = valid_data[:, args.input_x_dim:].requires_grad_(True).to(device)
                     # start timer
                     end_vld = time.time()
-                    val_loss_picnn = -pcpmap.loglik_picnn(x_valid, y_valid).mean()
+                    mean_valid_loss_picnn = -pcpmap.loglik_picnn(x_valid, y_valid).mean()
                     # end timer
-                    vldstep_time = time.time() - end_vld
-                    vldTotTimeMeter.update(vldstep_time)
-                    val_loss_picnn = val_loss_picnn.cpu().detach().numpy()
-                else:
-                    vldtimeMeter = AverageMeter()
-                    valLossMeterPICNN = AverageMeter()
-                    for valid_sample in valid_loader:
-                        if args.data == 'lv':
-                            x_valid = valid_sample[:, :args.input_x_dim].requires_grad_(True).to(device)
-                            y_valid = valid_sample[:, args.input_x_dim:].requires_grad_(True).to(device)
-                        else:
-                            x_valid = valid_sample[:, args.input_y_dim:].requires_grad_(True).to(device)
-                            y_valid = valid_sample[:, :args.input_y_dim].requires_grad_(True).to(device)
-                        # start timer
-                        end_vld = time.time()
-                        mean_valid_loss_picnn = -pcpmap.loglik_picnn(x_valid, y_valid).mean()
-                        # end timer
-                        batch_step_time = time.time() - end_vld
-                        vldtimeMeter.update(batch_step_time)
-                        valLossMeterPICNN.update(mean_valid_loss_picnn.item(), valid_sample.shape[0])
-                    val_loss_picnn = valLossMeterPICNN.avg
-                    vldstep_time = vldtimeMeter.sum
-                    vldTotTimeMeter.update(vldstep_time)
+                    batch_step_time = time.time() - end_vld
+                    vldtimeMeter.update(batch_step_time)
+                    valLossMeterPICNN.update(mean_valid_loss_picnn.item(), valid_sample.shape[0])
+
+                val_loss_picnn = valLossMeterPICNN.avg
+                vldstep_time = vldtimeMeter.sum
+                vldTotTimeMeter.update(vldstep_time)
 
                 valid_hist.loc[len(valid_hist.index)] = [vldstep_time, val_loss_picnn]
                 log_message_valid = '   {:9.3e}      {:9.3e} '.format(vldstep_time, val_loss_picnn)
@@ -323,26 +292,22 @@ if __name__ == '__main__':
                     valid_hist.to_csv(os.path.join(args.save, '%s_valid_hist.csv' % strTitle))
                     if bool(args.save_test) is False:
                         exit(0)
-                    elif args.data == 'sw':
-                        os.system(
-                            "python evaluate_sw.py --resume " + ".../PCP-Map" + args.save + "/" + strTitle + '_checkpt.pth'
-                        )
-                        exit(0)
-                    elif args.data == 'lv':
-                        os.system(
-                            "python evaluate_lv.py --resume " + ".../PCP-Map/" + args.save + "/" + strTitle + '_checkpt.pth'
-                        )
-                        exit(0)
                     else:
-                        NLL, MMD = evaluate_model(pcpmap, args.data, args.batch_size, args.test_ratio, args.valid_ratio,
-                                                  args.random_state, args.input_y_dim, args.input_x_dim, args.tol,
+                        data_path = os.path.expanduser(args.data_path)
+                        data = np.load(data_path, allow_pickle=True)
+                        NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
+                                                  args.random_state, args.pca_components_x, args.pca_components_y, args.tol,
                                                   bestParams_picnn)
+
                         columns_test = ["batch_size", "lr", "width", "width_y", "depth", "NLL", "MMD", "time", "iter"]
                         test_hist = pd.DataFrame(columns=columns_test)
                         test_hist.loc[len(test_hist.index)] = [args.batch_size, args.lr, args.feature_dim,
                                                                args.feature_y_dim,
                                                                args.num_layers_pi, NLL, MMD, timeMeter.sum, itr]
-                        testfile_name = '.../PCP-Map/experiments/tabcond/' + args.data + '_test_hist.csv'
+                        data_filename = os.path.basename(args.data_path)
+                        data_filename = os.path.splitext(data_filename)[0]
+                        testfile_name = os.path.join(args.save, f'{data_filename}_test_hist.csv')
+
                         if os.path.isfile(testfile_name):
                             test_hist.to_csv(testfile_name, mode='a', index=False, header=False)
                         else:
@@ -360,26 +325,22 @@ if __name__ == '__main__':
     valid_hist.to_csv(os.path.join(args.save, '%s_valid_hist.csv' % strTitle))
     if bool(args.save_test) is False:
         exit(0)
-    elif args.data == 'sw':
-        os.system(
-            "python evaluate_sw.py --resume " + ".../PCP-Map/" + args.save + "/" + strTitle + '_checkpt.pth'
-        )
-        exit(0)
-    elif args.data == 'lv':
-        os.system(
-            "python evaluate_lv.py --resume " + ".../PCP-Map/" + args.save + "/" + strTitle + '_checkpt.pth'
-        )
-        exit(0)
     else:
-        NLL, MMD = evaluate_model(pcpmap, args.data, args.batch_size, args.test_ratio, args.valid_ratio,
-                                  args.random_state, args.input_y_dim, args.input_x_dim, args.tol, bestParams_picnn)
+        data_path = os.path.expanduser(args.data_path)
+        data = np.load(data_path, allow_pickle=True)
+        NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
+                                  args.random_state, args.pca_components_x, args.pca_components_y, args.tol, bestParams_picnn)
 
         columns_test = ["batch_size", "lr", "width", "width_y", "depth", "NLL", "MMD", "time", "iter"]
         test_hist = pd.DataFrame(columns=columns_test)
         test_hist.loc[len(test_hist.index)] = [args.batch_size, args.lr, args.feature_dim, args.feature_y_dim,
                                                args.num_layers_pi, NLL, MMD,
                                                timeMeter.sum, itr]
-        testfile_name = '.../PCP-Map/experiments/tabcond/' + args.data + '_test_hist.csv'
+        
+        data_filename = os.path.basename(args.data_path)
+        data_filename = os.path.splitext(data_filename)[0]
+        testfile_name = os.path.join(args.save, f'{data_filename}_test_hist.csv')
+
         if os.path.isfile(testfile_name):
             test_hist.to_csv(testfile_name, mode='a', index=False, header=False)
         else:
