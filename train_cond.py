@@ -177,9 +177,11 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(pcpmap.parameters(), lr=args.lr)
 
     """Initial Logs"""
+    data_filename = os.path.basename(args.data_path)
+    data_filename = os.path.splitext(data_filename)[0]
 
-    strTitle = args.data + '_' + sStartTime + '_' + str(args.batch_size) + '_' + str(args.lr) + \
-               '_' + str(args.num_layers_pi) + '_' + str(args.feature_dim)
+    strTitle = data_filename + '_' + sStartTime + '_' + str(args.batch_size) + '_' + str(args.lr) + \
+            '_' + str(args.num_layers_pi) + '_' + str(args.feature_dim)
 
     logger.info("--------------------------------------------------")
     logger.info("Number of trainable parameters: {}".format(count_parameters(picnn)))
