@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 
 # TODO change to correct paths
-loss = pd.read_csv('.../PCP-Map/experiments/tabcond/177_valid_hist.csv').to_numpy()
-param = pd.read_csv('.../PCP-Map/experiments/tabcond/177_params_hist.csv').to_numpy()
+loss = pd.read_csv('~/code/PCP-Map/experiments/tabcond/177_valid_hist.csv').to_numpy()
+param = pd.read_csv('~/code/PCP-Map/experiments/tabcond/177_params_hist.csv').to_numpy()
 loss_param = np.concatenate((param[:, 1:], loss[:, 1:]), axis=1)
 unique_param = loss_param[np.unique(loss_param[:, :-1], return_index=True, axis=0)[1]]
 unique_param = unique_param[unique_param[:, -1].argsort()]
