@@ -82,7 +82,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     y_normalised = torch.tensor(y_normalised, dtype=torch.float32).to(device)
     x_generated, _ = generate_sample(y_normalised, num_sample, pca_components_x, tol, bestParams_picnn_model)
     
-    # Process
+    # Processx
     if x_generated.ndim == 1:
         x_generated = x_generated.reshape(-1,1)
 
@@ -97,14 +97,14 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     mu_pos = np.mean(X_star_refl, 0)
     gamma_pos = np.cov(X_star_refl.T)
 
-    plt.figure()
-    plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
-    plt.plot(wls, mu_pos, 'g-.', alpha=0.7, label="Transport")
-    plt.xlabel("Wavelength")
-    plt.ylabel("Reflectance")
-    plt.title("Posterior mean")
-    plt.legend()
-    plt.savefig(f'plots/refl_pos_mean_{data_filename}_1.png', dpi=300)
+    # plt.figure()
+    # plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
+    # plt.plot(wls, mu_pos, 'g-.', alpha=0.7, label="Transport")
+    # plt.xlabel("Wavelength")
+    # plt.ylabel("Reflectance")
+    # plt.title("Posterior mean")
+    # plt.legend()
+    # plt.savefig(f'plots/refl_pos_mean_{data_filename}_1.png', dpi=300)
 
     plt.figure()
     plt.plot(wls, x_truth, 'r', alpha=1, linewidth=3,label="Truth")
@@ -131,7 +131,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.legend()
     plt.savefig(f'plots/refl_pos_var_{data_filename}.png', dpi=300)
 
-    data = np.load(data_path, allow_pickle=True)
+    data = np.load(data_path, allow_pickle=True).T
     plt.figure()
     plt.scatter(data[:,326], data[:,327], alpha=0.5,label='Prior')
     plt.scatter(x_generated[:,0], x_generated[:,1], alpha=0.5,label='Transport')
@@ -139,13 +139,11 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.ylabel('H2O')
     plt.legend()
     plt.title('Posterior samples - atmosphere')
-    plt.xlim((0,1))
     plt.savefig(f'plots/atm_pos_samp_{data_filename}.png', dpi=300)
 
     return x_generated
 
-# checkpoint_path = 'experiments/tabcond/177/177_2024_06_07_07_01_15_32_0.01_3_256_checkpt.pth'
-checkpoint_path = 'experiments/sw_100k_64_0.001_3_256_checkpt.pth'
+checkpoint_path = 'experiments/tabcond/177/177_2024_06_07_07_01_15_32_0.01_3_256_checkpt.pth'
 checkpoint = torch.load(checkpoint_path)
 
 input_x_dim = 40
@@ -160,4 +158,5 @@ pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
 pcpmap.load_state_dict(checkpoint['state_dict_picnn'])
 
-plot_for_comparison('ens/177.p', 50, 40, 1e-06, pcpmap, 40, 0.1, 42)
+x_generated = plot_for_comparison('ens/177.p', 100, 40, 1e-06, pcpmap, 40, 0.1, 42)
+print(x_generated)
