@@ -20,3 +20,4 @@ os.system(
     "python train_cond.py --data_path '~/code/PCP-Map/ens/dark.p' --valid_freq 50 --early_stopping 20 --pca_components_x 40 --pca_components_y 40"
     " --num_layers_pi " + str(num_layers) + " --feature_dim " + str(width) + " --feature_y_dim " + str(width_y) +
     " --batch_size " + str(batch_size) + " --lr " + str(lr) + " --save_test 1 --save 'experiments/cond/dark'"
+)
