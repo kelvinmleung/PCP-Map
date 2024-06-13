@@ -1,23 +1,30 @@
+from lib.dataloader import dataloader
+import scipy.io
 import os
 import numpy as np
+import pandas as pd
 import torch
-import torch.nn as nn
-from sklearn.decomposition import PCA
 from lib.dataloader import dataloader
-import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from src.icnn import PICNN
+from src.pcpmap import PCPMap
+from src.mmd import mmd
+from lib.utils import count_parameters, makedirs, get_logger, AverageMeter
+from sklearn.decomposition import PCA
+import torch.nn as nn
+import matplotlib.pyplot as plt
 
 # GPU Device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def generate_sample(y_obs, num_sample, input_x_dim, tol, bestParams_picnn):         
-     # Load Best Models
-    model.load_state_dict(bestParams_picnn)
-    model = model.to(device)
+def generate_sample(y_obs, num_sample, input_x_dim, tol, bestParams_picnn_model):         
+    model = bestParams_picnn_model.to(device)
     
     # Generate samples
     zx = torch.randn(num_sample, input_x_dim).to(device)
-    x_generated, _ = model.gx(zx, y_obs.to(device), tol=tol)
+    y_obs = y_obs.to(device)  # Ensure y_obs is on the same device
+    x_generated, _ = model.gx(zx, y_obs, tol=tol)
     x_generated = x_generated.detach().to(device)
    
     # Outputing the average without processing
@@ -25,7 +32,7 @@ def generate_sample(y_obs, num_sample, input_x_dim, tol, bestParams_picnn):
 
     return x_generated, x_generated_avg
 
-def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams_picnn, pca_components_y, test_ratio, random_state):         
+def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams_picnn_model, pca_components_y, test_ratio, random_state):         
     data_filename = os.path.basename(data_path)
     data_filename = os.path.splitext(data_filename)[0]
     
@@ -33,7 +40,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     xtruthDir = f"data/x_{data_filename}.npy"
     xisofitMuDir = f"data/x_iso_{data_filename}.npy"
     xisofitGammaDir = f"data/x_iso_gamma_{data_filename}.npy"
-    yobsDir = f"data/y__{data_filename}.npy"
+    yobsDir = f"data/y_{data_filename}.npy"
 
     # Load data
     plt.figure()
@@ -61,37 +68,34 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     train_mean = np.mean(train, axis=0, keepdims=True)
     train_std = np.std(train, axis=0, keepdims=True)
 
+    train_mean = torch.tensor(train_mean, dtype=torch.float32).to(device)
+    train_std = torch.tensor(train_std, dtype=torch.float32).to(device)
+
     # Getting sample
     if y_obs.ndim == 1:
-        y_obs = y_obs.reshape(-1,1)
-    y_reduced = pca_y.transform(y_obs)
+        y_obs = y_obs.reshape(-1, 1)
+    y_reduced = pca_y.transform(y_obs.T)
+    y_reduced = torch.tensor(y_reduced, dtype=torch.float32).to(device)
     y_normalised = (y_reduced - train_mean[:, :pca_components_y]) / train_std[:, :pca_components_y]
-    x_generated, _ = generate_sample(y_normalised, num_sample, pca_components_x, tol, bestParams_picnn)
+    y_normalised = torch.tensor(y_normalised, dtype=torch.float32).to(device)
+    x_generated, _ = generate_sample(y_normalised, num_sample, pca_components_x, tol, bestParams_picnn_model)
     
-    # Process
+    # Process x
     if x_generated.ndim == 1:
-        x_generated = x_generated.reshape(-1,1)
+        x_generated = x_generated.reshape(-1, 1)
 
     x_generated = (x_generated * train_std[:, pca_components_y:]) + train_mean[:, pca_components_y:]
     x_generated = pca_x.inverse_transform(x_generated)
 
-    a_orig = np.exp(x_generated[:, :2])
-    x_generated[:,:2] = a_orig
+    a_orig = np.exp(np.clip(x_generated[:, :2], a_min=-700, a_max=700))
+    x_generated[:, :2] = a_orig
 
-    X_star_refl = x_generated[:,2:]
+    X_star_refl = x_generated[:, 2:]
     mu_pos = np.mean(X_star_refl, 0)
     gamma_pos = np.cov(X_star_refl.T)
 
     plt.figure()
-    plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
-    plt.plot(wls, mu_pos, 'g-.', alpha=0.7, label="Transport")
-    plt.xlabel("Wavelength")
-    plt.ylabel("Reflectance")
-    plt.title("Posterior mean")
-    plt.legend()
-
-    plt.figure()
-    plt.plot(wls, x_truth, 'r', alpha=1, linewidth=3,label="Truth")
+    plt.plot(wls, x_truth, 'r', alpha=1, linewidth=3, label="Truth")
     plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
     plt.plot(wls, mu_pos, 'g', alpha=0.7, label="Posterior - Transport")
     plt.axvspan(1300, 1450, alpha=0.8, color='black')
@@ -104,7 +108,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.savefig(f'plots/refl_pos_mean_{data_filename}.png', dpi=300)
 
     plt.figure()
-    plot = plt.plot(wls, np.diag(x_isofit_gamma), 'b', alpha=0.7, label="Pos MAP - Isofit")
+    plt.plot(wls, np.diag(x_isofit_gamma), 'b', alpha=0.7, label="Pos MAP - Isofit")
     plt.plot(wls, np.diag(gamma_pos), 'g', alpha=0.7, label="Posterior - Transport")
     plt.axvspan(1300, 1450, alpha=0.8, color='black')
     plt.axvspan(1780, 2050, alpha=0.8, color='black')
@@ -115,9 +119,10 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.legend()
     plt.savefig(f'plots/refl_pos_var_{data_filename}.png', dpi=300)
 
+    data = np.load(data_path, allow_pickle=True).T
     plt.figure()
-    plt.scatter(data[:,326], data[:,327], alpha=0.5,label='Prior')
-    plt.scatter(x_generated[:,0], x_generated[:,1], alpha=0.5,label='Transport')
+    plt.scatter(data[:, 326], data[:, 327], alpha=0.5, label='Prior')
+    plt.scatter(x_generated[:, 0], x_generated[:, 1], alpha=0.5, label='Transport')
     plt.xlabel('AOD')
     plt.ylabel('H2O')
     plt.legend()
@@ -125,9 +130,4 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.savefig(f'plots/atm_pos_samp_{data_filename}.png', dpi=300)
 
     return x_generated
-
-    
-   
-
-
 
