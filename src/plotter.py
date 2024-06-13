@@ -87,7 +87,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     x_generated = (x_generated * train_std[:, pca_components_y:]) + train_mean[:, pca_components_y:]
     x_generated = pca_x.inverse_transform(x_generated)
 
-    a_orig = np.exp(np.clip(x_generated[:, :2], a_min=-700, a_max=700))
+    a_orig = np.exp(x_generated[:, :2])
     x_generated[:, :2] = a_orig
 
     X_star_refl = x_generated[:, 2:]
@@ -112,7 +112,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.plot(wls, np.diag(gamma_pos), 'g', alpha=0.7, label="Posterior - Transport")
     plt.axvspan(1300, 1450, alpha=0.8, color='black')
     plt.axvspan(1780, 2050, alpha=0.8, color='black')
-    plt.ylim(bottom=0, top=0.0001)
+    plt.ylim(bottom=0)
     plt.xlabel("Wavelength")
     plt.ylabel("Variance")
     plt.title("Posterior marginal variance")
