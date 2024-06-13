@@ -132,8 +132,8 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
 
     return x_generated
 
-# checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
-checkpoint_path = 'experiments/cond/306/306_2024_06_13_00_40_56_32_0.01_2_64_checkpt.pth'
+checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
+# checkpoint_path = 'experiments/cond/306/306_2024_06_13_00_40_56_32_0.01_2_64_checkpt.pth'
 checkpoint = torch.load(checkpoint_path)
 
 args = checkpoint['args']
@@ -158,5 +158,5 @@ pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
 pcpmap.load_state_dict(checkpoint['state_dict_picnn'])
 
-x_generated = plot_for_comparison('ens/306.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state)
+x_generated = plot_for_comparison('ens/177.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state)
 print(x_generated)
