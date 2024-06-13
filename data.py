@@ -134,9 +134,9 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
 
 # checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
 # checkpoint_path = 'experiments/cond/306/306_2024_06_13_00_40_56_32_0.01_2_64_checkpt.pth'
-# checkpoint_path = 'experiments/cond/beckman/beckman_2024_06_13_03_46_27_64_0.01_2_128_checkpt.pth'
+checkpoint_path = 'experiments/cond/beckman/beckman_2024_06_13_03_46_27_64_0.01_2_128_checkpt.pth'
 # checkpoint_path = 'experiments/cond/dark/dark_2024_06_13_03_50_54_64_0.01_2_512_checkpt.pth'
-checkpoint_path = 'experiments/cond/mars/mars_2024_06_13_03_50_44_64_0.01_2_512_checkpt.pth'
+# checkpoint_path = 'experiments/cond/mars/mars_2024_06_13_03_50_44_64_0.01_2_512_checkpt.pth'
 checkpoint = torch.load(checkpoint_path)
 
 args = checkpoint['args']
@@ -161,5 +161,5 @@ pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
 pcpmap.load_state_dict(checkpoint['state_dict_picnn'])
 
-x_generated = plot_for_comparison('ens/mars.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state) # data_path to be changed
+x_generated = plot_for_comparison('ens/beckman.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state) # data_path to be changed
 print(x_generated)
