@@ -113,7 +113,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.plot(wls, np.diag(gamma_pos), 'g', alpha=0.7, label="Posterior - Transport")
     plt.axvspan(1300, 1450, alpha=0.8, color='black')
     plt.axvspan(1780, 2050, alpha=0.8, color='black')
-    plt.ylim(bottom=0, top=0.0001)
+    plt.ylim(bottom=0)
     plt.xlabel("Wavelength")
     plt.ylabel("Variance")
     plt.title("Posterior marginal variance")
@@ -132,19 +132,31 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
 
     return x_generated
 
-checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
+# checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
+checkpoint_path = 'experiments/cond/306/306_2024_06_13_00_40_56_32_0.01_2_64_checkpt.pth'
 checkpoint = torch.load(checkpoint_path)
 
-input_x_dim = 40
-input_y_dim = 40
+args = checkpoint['args']
+input_x_dim = args.input_x_dim
+input_y_dim = args.input_y_dim
+feature_dim = args.feature_dim
+feature_y_dim = args.feature_y_dim
+num_layers = args.num_layers_pi
+reparam = not args.clip 
+tol = args.tol
+pca_components_x = args.pca_components_x
+pca_components_y = args.pca_components_y
+test_ratio = args.test_ratio
+random_state = args.random_state
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device), torch.eye(input_x_dim).to(device))
+prior_picnn = distributions.MultivariateNormal(torch.zeros(pca_components_x).to(device), torch.eye(pca_components_x).to(device))
 
 # Build PCP-Map
-picnn = PICNN(input_x_dim, input_y_dim, 256, 256, 1, 3, reparam=False)
+picnn = PICNN(pca_components_x, pca_components_y, feature_dim, feature_y_dim, 1, num_layers, reparam=reparam)
 pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
 pcpmap.load_state_dict(checkpoint['state_dict_picnn'])
 
-x_generated = plot_for_comparison('ens/177.p', 100, 40, 1e-06, pcpmap, 40, 0.1, 42)
+x_generated = plot_for_comparison('ens/306.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state)
 print(x_generated)
