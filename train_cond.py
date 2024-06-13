@@ -35,7 +35,7 @@ parser.add_argument('--clip',           type=bool, default=True, help="whether c
 parser.add_argument('--tol',            type=float, default=1e-6, help="LBFGS tolerance")
 
 parser.add_argument('--batch_size',     type=int, default=256, help="number of samples per batch")
-parser.add_argument('--num_epochs',     type=int, default=100, help="number of training steps")
+parser.add_argument('--num_epochs',     type=int, default=10, help="number of training steps")
 parser.add_argument('--print_freq',     type=int, default=1, help="how often to print results to log")
 parser.add_argument('--valid_freq',     type=int, default=50, help="how often to run model on validation set")
 parser.add_argument('--early_stopping', type=int, default=20, help="early stopping of training based on validation")
