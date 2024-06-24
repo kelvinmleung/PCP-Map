@@ -22,11 +22,12 @@ argument parser for hyper parameters and model handling
 
 parser = argparse.ArgumentParser('PCP-Map')
 parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
-parser.add_argument('--input_x_dim',    type=int, default=328, help="input data convex dimension")
+# parser.add_argument('--input_x_dim',    type=int, default=328, help="input data convex dimension")
+parser.add_argument('--input_s_dim', type=int, default=326, help="Input data convex dimension")
 parser.add_argument('--input_y_dim',    type=int, default=326, help="input data non-convex dimension")
 parser.add_argument('--feature_dim',    type=int, default=128, help="intermediate layer feature dimension")
 parser.add_argument('--feature_y_dim',  type=int, default=128, help="intermediate layer context dimension")
-parser.add_argument('--pca_components_x', type=int, default=40, help="Number of PCA components for x data")
+parser.add_argument('--pca_components_s', type=int, default=40, help="Number of PCA components for s data")
 parser.add_argument('--pca_components_y', type=int, default=40, help="Number of PCA components for y data")
 
 parser.add_argument('--num_layers_pi',  type=int, default=2, help="depth of PICNN network")
@@ -81,19 +82,19 @@ def update_lr_picnn(optimizer, n_vals_without_improvement):
             param_group["lr"] = args.lr / args.lr_drop**ndecs_picnn
 
 
-def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_components_x, pca_components_y):
+def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_components_s, pca_components_y):
     a_log = np.log(data[326:328, :])
     data[326:328, :] = a_log
 
-    x_data = data[326:, :].T
+    s_data = data[328:, :].T
     y_data = data[:326, :].T
 
-    pca_x = PCA(n_components=pca_components_x)
-    x_data = pca_x.fit_transform(x_data)
+    pca_s = PCA(n_components=pca_components_s)
+    s_data = pca_s.fit_transform(s_data)
     pca_y = PCA(n_components=pca_components_y)
     y_data = pca_y.fit_transform(y_data)
 
-    data = np.concatenate((x_data, y_data), axis=1)
+    data = np.concatenate((y_data, s_data), axis=1)
 
     # split data and convert to tensor
     train, valid = train_test_split(
@@ -124,7 +125,7 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     return trn_loader, vld_loader, train_sz
 
 
-def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
+def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_s_dim, tol,
                    bestParams_picnn):
 
     _, _, testData, _ = dataloader(data, batch_size, test_ratio, valid_ratio, random_state)
@@ -138,7 +139,7 @@ def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_stat
     log_prob_picnn = model.loglik_picnn(x_test, y_test)
     pb_mean_NLL = -log_prob_picnn.mean()
     # Calculate MMD
-    zx = torch.randn(testData.shape[0], input_x_dim).to(device)
+    zx = torch.randn(testData.shape[0], input_s_dim).to(device)
     x_generated, _ = model.gx(zx, testData[:, :input_y_dim].to(device), tol=tol)
     x_generated = x_generated.detach().to(device)
     mean_max_dis = mmd(x_generated, testData[:, input_y_dim:])
@@ -158,14 +159,14 @@ if __name__ == '__main__':
     data = np.load(data_path, allow_pickle=True)
 
     train_loader, valid_loader, n_train = load_data(data, args.test_ratio, args.valid_ratio,
-                                                    args.batch_size, args.random_state, args.pca_components_x, args.pca_components_y) 
+                                                    args.batch_size, args.random_state, args.pca_components_s, args.pca_components_y) 
 
     """Construct Model"""
     reparam = not args.clip
 
     # Multivariate Gaussian as Reference
 
-    input_x_dim = args.pca_components_x
+    input_x_dim = args.pca_components_s
     input_y_dim = args.pca_components_y
     prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device), torch.eye(input_x_dim).to(device))
 
@@ -177,6 +178,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(pcpmap.parameters(), lr=args.lr)
 
     """Initial Logs"""
+
     data_filename = os.path.basename(args.data_path)
     data_filename = os.path.splitext(data_filename)[0]
 
@@ -298,7 +300,7 @@ if __name__ == '__main__':
                         data_path = os.path.expanduser(args.data_path)
                         data = np.load(data_path, allow_pickle=True)
                         NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
-                                                  args.random_state, args.pca_components_x, args.pca_components_y, args.tol,
+                                                  args.random_state, args.pca_components_s, args.pca_components_y, args.tol,
                                                   bestParams_picnn)
 
                         columns_test = ["batch_size", "lr", "width", "width_y", "depth", "NLL", "MMD", "time", "iter"]
@@ -331,7 +333,7 @@ if __name__ == '__main__':
         data_path = os.path.expanduser(args.data_path)
         data = np.load(data_path, allow_pickle=True)
         NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
-                                  args.random_state, args.pca_components_x, args.pca_components_y, args.tol, bestParams_picnn)
+                                  args.random_state, args.pca_components_s, args.pca_components_y, args.tol, bestParams_picnn)
 
         columns_test = ["batch_size", "lr", "width", "width_y", "depth", "NLL", "MMD", "time", "iter"]
         test_hist = pd.DataFrame(columns=columns_test)
