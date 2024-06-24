@@ -20,8 +20,11 @@ argument parser for hyper parameters and model handling
 """
 # Define argument parser
 parser = argparse.ArgumentParser('PCP-Map Pretraining')
-parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
-# parser.add_argument('--input_x_dim', type=int, default=328, help="Input data convex dimension")
+
+parser.add_argument('--data', type=str, choices=['177', '306', 'mars', 'dark', 'beckmen'], required=True, default='177', help="Identifier for the dataset (e.g., '177')")
+parser.add_argument('--data_type', type=str, required=True, default='synthetic', help="Type of the dataset ('real' or 'synthetic')")
+
+parser.add_argument('--input_x_dim', type=int, default=328, help="Input data convex dimension")
 parser.add_argument('--input_s_dim', type=int, default=326, help="Input data convex dimension")
 parser.add_argument('--input_y_dim', type=int, default=326, help="Input data non-convex dimension")
 parser.add_argument('--pca_components_s', type=int, default=40, help="Number of PCA components for s data")
@@ -93,6 +96,7 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     return trn_loader, vld_loader, train_sz
 
 if __name__ == '__main__':
+
     columns_params = ["batchsz", "lr", "width", "width_y", "depth"]
     columns_valid = ["picnn_nll"]
     params_hist = pd.DataFrame(columns=columns_params)
@@ -107,6 +111,11 @@ if __name__ == '__main__':
     batch_size_list =  np.array([32, 64, 128])
     lr_list = np.array([0.01, 0.001, 0.0001])
 
+    if args.data_type == 'real':
+        data_path = f'ens/{args.data}.p'
+    else:
+        data_path = f'ensembles_a=[0.2,1.5]/ens_{args.data}.npy'
+
     for trial in range(args.num_trials):
         # randomly initialize hyperparameters
         reparam = not args.clip
@@ -118,7 +127,6 @@ if __name__ == '__main__':
         lr = np.random.choice(lr_list)
 
         # load data
-        data_path = os.path.expanduser(args.data_path)
         data = np.load(data_path, allow_pickle=True)
         train_loader, valid_loader, _ = load_data(
             data, args.test_ratio, args.valid_ratio, batch_size, args.random_state, args.pca_components_s, args.pca_components_y)
@@ -166,7 +174,7 @@ if __name__ == '__main__':
         logger.info(log_message)
         valid_hist.loc[len(valid_hist.index)] = [val_loss_picnn]
     
-    data_filename = os.path.basename(args.data_path)
+    data_filename = os.path.basename(data_path)
     data_filename = os.path.splitext(data_filename)[0]
     params_hist.to_csv(os.path.join(args.save, f'{data_filename}_params_hist.csv'))
     valid_hist.to_csv(os.path.join(args.save, f'{data_filename}_valid_hist.csv'))
