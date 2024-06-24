@@ -37,14 +37,15 @@ def plot_for_comparison(data_path, num_sample, pca_components_s, tol, bestParams
     if data_type == 'real':
         data_filename = os.path.basename(data_path)
         data_filename = os.path.splitext(data_filename)[0]
+        yobsDir = f"data/y_{data_filename}.npy"
     else:
         data_filename = os.path.basename(data_path).split('_')[-1].split('.')[0]
+        yobsDir = f"ensembles_a=[0.2,1.5]/yobs_sim_{data_filename}.npy"
     
     # Construct the paths
     xtruthDir = f"data/x_{data_filename}.npy"
     xisofitMuDir = f"data/x_iso_{data_filename}.npy"
     xisofitGammaDir = f"data/x_iso_gamma_{data_filename}.npy"
-    yobsDir = f"data/y_{data_filename}.npy"
 
     # Load data
     plt.figure()
@@ -145,10 +146,7 @@ def plot_for_comparison(data_path, num_sample, pca_components_s, tol, bestParams
     return X_star
 
 checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
-# checkpoint_path = 'experiments/cond/306/306_2024_06_13_00_40_56_32_0.01_2_64_checkpt.pth'
-# checkpoint_path = 'experiments/cond/beckman/beckman_2024_06_13_03_46_27_64_0.01_2_128_checkpt.pth'
-# checkpoint_path = 'experiments/cond/dark/dark_2024_06_13_03_50_54_64_0.01_2_512_checkpt.pth'
-# checkpoint_path = 'experiments/cond/mars/mars_2024_06_13_03_50_44_64_0.01_2_512_checkpt.pth'
+
 checkpoint = torch.load(checkpoint_path)
 
 args = checkpoint['args']
