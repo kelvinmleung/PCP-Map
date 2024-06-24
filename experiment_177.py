@@ -19,5 +19,5 @@ num_layers = int(param_list[4])
 os.system(
     "python train_cond.py --data_path '~/code/PCP-Map/ensembles_a=[0.2,1.5]/ens_177.npy' --valid_freq 50 --early_stopping 20 --pca_components_s 40 --pca_components_y 40"
     " --num_layers_pi " + str(num_layers) + " --feature_dim " + str(width) + " --feature_y_dim " + str(width_y) +
-    " --batch_size " + str(batch_size) + " --lr " + str(lr) + " --save_test 1 --save 'experiments/tabcond/ens_177'"
+    " --batch_size " + str(batch_size) + " --lr " + str(lr) + " --save_test 1 --save 'experiments/cond/ens_177'"
 )
