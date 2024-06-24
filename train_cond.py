@@ -21,8 +21,11 @@ argument parser for hyper parameters and model handling
 """
 
 parser = argparse.ArgumentParser('PCP-Map')
-parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
-# parser.add_argument('--input_x_dim',    type=int, default=328, help="input data convex dimension")
+# parser.add_argument('--data_path', type=str, required=True, help="Path to the dataset pickle file")
+parser.add_argument('--data', type=str, choices=['177', '306', 'mars', 'dark', 'beckmen'], required=True, default='177', help="Identifier for the dataset (e.g., '177')")
+parser.add_argument('--data_type', type=str, required=True, default='synthetic', help="Type of the dataset ('real' or 'synthetic')")
+
+parser.add_argument('--input_x_dim',    type=int, default=328, help="input data convex dimension")
 parser.add_argument('--input_s_dim', type=int, default=326, help="Input data convex dimension")
 parser.add_argument('--input_y_dim',    type=int, default=326, help="input data non-convex dimension")
 parser.add_argument('--feature_dim',    type=int, default=128, help="intermediate layer feature dimension")
@@ -155,7 +158,11 @@ if __name__ == '__main__':
 
     """Load Data"""
 
-    data_path = os.path.expanduser(args.data_path)
+    if args.data_type == 'real':
+        data_path = f'ens/{args.data}.p'
+    else:
+        data_path = f'ensembles_a=[0.2,1.5]/ens_{args.data}.npy'
+
     data = np.load(data_path, allow_pickle=True)
 
     train_loader, valid_loader, n_train = load_data(data, args.test_ratio, args.valid_ratio,
@@ -179,7 +186,7 @@ if __name__ == '__main__':
 
     """Initial Logs"""
 
-    data_filename = os.path.basename(args.data_path)
+    data_filename = os.path.basename(data_path)
     data_filename = os.path.splitext(data_filename)[0]
 
     strTitle = data_filename + '_' + sStartTime + '_' + str(args.batch_size) + '_' + str(args.lr) + \
@@ -297,7 +304,6 @@ if __name__ == '__main__':
                     if bool(args.save_test) is False:
                         exit(0)
                     else:
-                        data_path = os.path.expanduser(args.data_path)
                         data = np.load(data_path, allow_pickle=True)
                         NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
                                                   args.random_state, args.pca_components_s, args.pca_components_y, args.tol,
@@ -308,7 +314,7 @@ if __name__ == '__main__':
                         test_hist.loc[len(test_hist.index)] = [args.batch_size, args.lr, args.feature_dim,
                                                                args.feature_y_dim,
                                                                args.num_layers_pi, NLL, MMD, timeMeter.sum, itr]
-                        data_filename = os.path.basename(args.data_path)
+                        data_filename = os.path.basename(data_path)
                         data_filename = os.path.splitext(data_filename)[0]
                         testfile_name = os.path.join(args.save, f'{data_filename}_test_hist.csv')
 
@@ -330,7 +336,6 @@ if __name__ == '__main__':
     if bool(args.save_test) is False:
         exit(0)
     else:
-        data_path = os.path.expanduser(args.data_path)
         data = np.load(data_path, allow_pickle=True)
         NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
                                   args.random_state, args.pca_components_s, args.pca_components_y, args.tol, bestParams_picnn)
@@ -341,7 +346,7 @@ if __name__ == '__main__':
                                                args.num_layers_pi, NLL, MMD,
                                                timeMeter.sum, itr]
         
-        data_filename = os.path.basename(args.data_path)
+        data_filename = os.path.basename(data_path)
         data_filename = os.path.splitext(data_filename)[0]
         testfile_name = os.path.join(args.save, f'{data_filename}_test_hist.csv')
 
