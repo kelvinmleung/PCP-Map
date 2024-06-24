@@ -9,7 +9,7 @@ data=$1
 data_type=$2
 
 # Pretrain step
-python pretrain.py --data "$data" --data_type "$data_type"
+python pretrain_cond.py --data "$data" --data_type "$data_type"
 
 # Extract best hyperparameters and run training step
 loss_file="~/code/PCP-Map/experiments/tabcond/ens_${data}_valid_hist.csv"
@@ -34,6 +34,6 @@ else
 fi
 
 # Run training step
-python train.py --data "$data" --data_type "$data_type" --valid_freq 50 --early_stopping 20 --pca_components_s 40 --pca_components_y 40 \
+python train_cond.py --data "$data" --data_type "$data_type" --valid_freq 50 --early_stopping 20 --pca_components_s 40 --pca_components_y 40 \
     --num_layers_pi "$num_layers" --feature_dim "$width" --feature_y_dim "$width_y" \
     --batch_size "$batch_size" --lr "$lr" --save_test 1 --save "$save_dir"
