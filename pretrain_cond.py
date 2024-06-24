@@ -33,7 +33,7 @@ parser.add_argument('--random_state', type=int, default=42, help="Random state f
 parser.add_argument('--save', type=str, default='~/code/PCP-Map/experiments/tabcond', help="Directory to save results")
 parser.add_argument('--clip', type=bool, default=True, help="Whether to clip the weights or not")
 parser.add_argument('--tol', type=float, default=1e-12, help="LBFGS tolerance")
-parser.add_argument('--num_trials', type=int, default=50, help="Number of pilot runs")
+parser.add_argument('--num_trials', type=int, default=10, help="Number of pilot runs")
 args, unknown = parser.parse_known_args()
 
 sStartTime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -62,7 +62,7 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     pca_y = PCA(n_components=pca_components_y)
     y_data = pca_y.fit_transform(y_data)
 
-    data = np.concatenate((s_data, y_data), axis=1)
+    data = np.concatenate((y_data, s_data), axis=1)
 
     # split data and convert to tensor
     train, valid = train_test_split(
