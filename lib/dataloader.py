@@ -25,7 +25,7 @@ def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_comp
     pca_y = PCA(n_components=pca_components_y)
     y_data = pca_y.fit_transform(y_data)
 
-    data = np.concatenate((x_data, y_data), axis=1)
+    data = np.concatenate((y_data, x_data), axis=1)
 
     # split data and convert to tensor
     train_valid, test = train_test_split(

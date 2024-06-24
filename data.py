@@ -33,7 +33,7 @@ def generate_sample(y_obs, num_sample, input_x_dim, tol, bestParams_picnn_model)
 
     return x_generated, x_generated_avg
 
-def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams_picnn_model, pca_components_y, test_ratio, random_state):         
+def plot_for_comparison(data_path, num_sample, pca_components_s, tol, bestParams_picnn_model, pca_components_y, test_ratio, random_state):         
     data_filename = os.path.basename(data_path)
     data_filename = os.path.splitext(data_filename)[0]
     
@@ -54,16 +54,17 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     n = len(wls)
 
     # Preprocessing
-    a_log = np.log(data[326:328, :])
-    data[326:328, :] = a_log
-    x_data = data[326:, :].T
+    a_log = np.log(data[326:328, :]).T
+    
+    s_data = data[326+2:, :].T
     y_data = data[:326, :].T
 
-    pca_x = PCA(n_components=pca_components_x)
-    x_data_pca = pca_x.fit_transform(x_data)
+    pca_s = PCA(n_components=pca_components_s)
+    s_data_pca = pca_s.fit_transform(s_data)
     pca_y = PCA(n_components=pca_components_y)
     y_data_pca = pca_y.fit_transform(y_data)
-    data_pca = np.concatenate((x_data_pca, y_data_pca), axis=1)
+
+    data_pca = np.concatenate((y_data_pca, a_log, s_data_pca), axis=1)
     train, valid = train_test_split(data_pca, test_size=test_ratio, random_state=random_state)
 
     train_mean = np.mean(train, axis=0, keepdims=True)
@@ -79,17 +80,21 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     y_reduced = torch.tensor(y_reduced, dtype=torch.float32).to(device)
     y_normalised = (y_reduced - train_mean[:, :pca_components_y]) / train_std[:, :pca_components_y]
     y_normalised = torch.tensor(y_normalised, dtype=torch.float32).to(device)
-    x_generated, _ = generate_sample(y_normalised, num_sample, pca_components_x, tol, bestParams_picnn_model)
+
+    input_dim = pca_components_s + 2
+    x_generated, _ = generate_sample(y_normalised, num_sample, input_dim, tol, bestParams_picnn_model)
     
     # Process x
     if x_generated.ndim == 1:
         x_generated = x_generated.reshape(-1, 1)
 
     x_generated = (x_generated * train_std[:, pca_components_y:]) + train_mean[:, pca_components_y:]
-    x_generated = pca_x.inverse_transform(x_generated)
+
+    s_generated = x_generated[:, 2:]
+    s_generated = pca_s.inverse_transform(s_generated)
 
     a_orig = np.exp(np.clip(x_generated[:, :2], a_min=-700, a_max=700))
-    x_generated[:, :2] = a_orig
+    
 
     X_star_refl = x_generated[:, 2:]
     mu_pos = np.mean(X_star_refl, 0)
@@ -126,15 +131,16 @@ def plot_for_comparison(data_path, num_sample, pca_components_x, tol, bestParams
     plt.scatter(x_generated[:, 0], x_generated[:, 1], alpha=0.5, label='Transport')
     plt.xlabel('AOD')
     plt.ylabel('H2O')
+    plt.ylim((0,4))
     plt.legend()
     plt.title('Posterior samples - atmosphere')
     plt.savefig(f'plots/atm_pos_samp_{data_filename}.png', dpi=300)
 
     return x_generated
 
-# checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
+checkpoint_path = 'experiments/cond/177/177_2024_06_11_21_52_36_32_0.01_3_256_checkpt.pth'
 # checkpoint_path = 'experiments/cond/306/306_2024_06_13_00_40_56_32_0.01_2_64_checkpt.pth'
-checkpoint_path = 'experiments/cond/beckman/beckman_2024_06_13_03_46_27_64_0.01_2_128_checkpt.pth'
+# checkpoint_path = 'experiments/cond/beckman/beckman_2024_06_13_03_46_27_64_0.01_2_128_checkpt.pth'
 # checkpoint_path = 'experiments/cond/dark/dark_2024_06_13_03_50_54_64_0.01_2_512_checkpt.pth'
 # checkpoint_path = 'experiments/cond/mars/mars_2024_06_13_03_50_44_64_0.01_2_512_checkpt.pth'
 checkpoint = torch.load(checkpoint_path)
@@ -161,5 +167,5 @@ pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
 pcpmap.load_state_dict(checkpoint['state_dict_picnn'])
 
-x_generated = plot_for_comparison('ens/beckman.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state) # data_path to be changed
+x_generated = plot_for_comparison('ens/177.p', 100, pca_components_x, tol, pcpmap, pca_components_y, test_ratio, random_state) # data_path to be changed
 print(x_generated)
