@@ -21,8 +21,8 @@ argument parser for hyper parameters and model handling
 # Define argument parser
 parser = argparse.ArgumentParser('PCP-Map Pretraining')
 
-parser.add_argument('--data', type=str, choices=['177', '306', 'mars', 'dark', 'beckmen'], required=True, default='177', help="Identifier for the dataset (e.g., '177')")
-parser.add_argument('--data_type', type=str, required=True, default='synthetic', help="Type of the dataset ('real' or 'synthetic')")
+parser.add_argument('--data', type=str, choices=['177', '306', 'mars', 'dark', 'beckmen'], required=True, help="Identifier for the dataset (e.g., '177')")
+parser.add_argument('--data_type', type=str, required=True, help="Type of the dataset ('real' or 'synthetic')")
 
 parser.add_argument('--input_x_dim', type=int, default=328, help="Input data convex dimension")
 parser.add_argument('--input_s_dim', type=int, default=326, help="Input data convex dimension")
