@@ -7,4 +7,4 @@ source /etc/profile
 module load anaconda/2023a
 
 #Your job commands go here
-python pretrain_cond.py --data '~/code/PCP-Map/ens/177.p' 
+python pretrain_cond.py --data '177' --data_type 'real'
