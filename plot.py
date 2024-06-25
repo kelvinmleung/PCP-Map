@@ -50,7 +50,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     else:
         data_path = f"ensembles_a=[0.2,1.5]/ens_{data_filename}.npy"
         yobsDir = f"ensembles_a=[0.2,1.5]/yobs_sim_{data_filename}.npy"
-        mcmcDir = f"mcmc/synthetic/mcmc_{data_filename}.npy"
+        mcmcDir = f"mcmc/synthetic/mcmc_simobs_{data_filename}.npy"
 
     # Construct the paths
     xtruthDir = f"data/x_{data_filename}.npy"
@@ -92,7 +92,11 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     pca_y = PCA(n_components=pca_components_y)
     y_data_pca = pca_y.fit_transform(y_data)
 
-    data_pca = np.concatenate((y_data_pca, s_data_pca), axis=1)
+    if data_type == 'real':
+        data_pca = np.concatenate((y_data_pca, a_log, s_data_pca), axis=1)
+    else:
+        data_pca = np.concatenate((y_data_pca, s_data_pca), axis=1)
+
     train, valid = train_test_split(data_pca, test_size=test_ratio, random_state=random_state)
 
     train_mean = np.mean(train, axis=0, keepdims=True)
@@ -109,7 +113,10 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     y_normalised = (y_reduced - train_mean[:, :pca_components_y]) / train_std[:, :pca_components_y]
     y_normalised = torch.tensor(y_normalised, dtype=torch.float32).to(device)
 
-    input_dim = pca_components_s 
+    if data_type == 'real':
+        input_dim = pca_components_s + 2
+    else:
+        input_dim = pca_components_s 
     x_generated, _ = generate_sample(y_normalised, num_sample, input_dim, tol, bestParams_picnn_model)
     
     # Process x
@@ -118,11 +125,18 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
 
     x_generated = (x_generated * train_std[:, pca_components_y:]) + train_mean[:, pca_components_y:]
 
-    # s_generated = x_generated[:, 2:]
+    if data_type == 'real':
+        s_generated = x_generated[:, 2:]
+    else:
+        s_generated = x_generated
     s_generated = pca_s.inverse_transform(x_generated)
 
-    # a_orig = np.exp(np.clip(x_generated[:, :2], a_min=-700, a_max=700))
-    X_star = np.concatenate((data[326:328, :].T, s_generated), axis=1)
+    if data_type == 'real':
+        a_orig = np.exp(x_generated[:, :2])
+    else:
+        a_orig = data[326:328, :].T
+        
+    X_star = np.concatenate((a_orig, s_generated), axis=1)
 
     X_star_refl = X_star[:,2:]
     mu_pos = np.mean(X_star_refl, 0)
