@@ -21,14 +21,16 @@ argument parser for hyper parameters and model handling
 # Define argument parser
 parser = argparse.ArgumentParser('PCP-Map Pretraining')
 
-parser.add_argument('--data', type=str, choices=['177', '306', 'mars', 'dark', 'beckmen'], required=True, help="Identifier for the dataset (e.g., '177')")
-parser.add_argument('--data_type', type=str, required=True, help="Type of the dataset ('real' or 'synthetic')")
+parser.add_argument('--data', type=str, choices=['177', '306', 'mars', 'dark', 'beckmen'], required=True, help="Identifier for the dataset")
+parser.add_argument('--data_type', type=str, required=True,  choices=['real', 'synthetic'], help="Type of the dataset")
 
 parser.add_argument('--input_x_dim', type=int, default=328, help="Input data convex dimension")
 parser.add_argument('--input_s_dim', type=int, default=326, help="Input data convex dimension")
 parser.add_argument('--input_y_dim', type=int, default=326, help="Input data non-convex dimension")
+
 parser.add_argument('--pca_components_s', type=int, default=40, help="Number of PCA components for s data")
 parser.add_argument('--pca_components_y', type=int, default=40, help="Number of PCA components for y data")
+
 parser.add_argument('--num_epochs', type=int, default=1, help="Number of pre-training epochs")
 parser.add_argument('--test_ratio', type=float, default=0.10, help="Test set ratio")
 parser.add_argument('--valid_ratio', type=float, default=0.10, help="Validation set ratio")
@@ -51,11 +53,10 @@ logger.info(args)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Data loading function
-def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_components_s, pca_components_y):
+def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_components_s, pca_components_y, data_type):
     # enforce positivity
     # below the row_numbers are specified according to remote sensing context
-    # a_log = np.log(data[326:328, :])
-    # data[326:328, :] = a_log
+    a_log = np.log(data[326:328, :]).T
 
     s_data = data[328:, :].T
     y_data = data[:326, :].T
@@ -65,7 +66,10 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     pca_y = PCA(n_components=pca_components_y)
     y_data = pca_y.fit_transform(y_data)
 
-    data = np.concatenate((y_data, s_data), axis=1)
+    if data_type == 'real':
+        data = np.concatenate((y_data, a_log, s_data), axis=1)
+    else:
+        data = np.concatenate((y_data, s_data), axis=1)
 
     # split data and convert to tensor
     train, valid = train_test_split(
@@ -128,17 +132,20 @@ if __name__ == '__main__':
 
         # load data
         data = np.load(data_path, allow_pickle=True)
-        train_loader, valid_loader, _ = load_data(
-            data, args.test_ratio, args.valid_ratio, batch_size, args.random_state, args.pca_components_s, args.pca_components_y)
+        train_loader, valid_loader, _ = load_data(data, args.test_ratio, args.valid_ratio, batch_size, args.random_state, args.pca_components_s, args.pca_components_y, args.data_type)
 
         # Multivariate Gaussian as Reference
-        input_s_dim = args.pca_components_s
-        prior_picnn = distributions.MultivariateNormal(torch.zeros(input_s_dim).to(device),
-                                                        torch.eye(input_s_dim).to(device))
+        if args.data_type == 'real':
+            input_x_dim = args.pca_components_s + 2
+        else:
+            input_x_dim = args.pca_components_s
+        prior_picnn = distributions.MultivariateNormal(torch.zeros(input_x_dim).to(device),
+                                                            torch.eye(input_x_dim).to(device))
 
         # build PCP-Map
         input_y_dim = args.pca_components_y
-        picnn = PICNN(input_s_dim, input_y_dim, width, width_y, 1, num_layers, reparam=reparam).to(device)
+        picnn = PICNN(input_x_dim, input_y_dim, width, width_y, 1, num_layers, reparam=reparam).to(device)
+
         pcpmap = PCPMap(prior_picnn, picnn).to(device)
         optimizer = torch.optim.Adam(pcpmap.parameters(), lr=lr)
 
