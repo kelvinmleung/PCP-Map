@@ -132,7 +132,6 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
 
 def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
                    bestParams_picnn):
-
     _, _, testData, _ = dataloader(data, batch_size, test_ratio, valid_ratio, random_state, input_x_dim, input_y_dim, data_type)
 
     # Load Best Models
