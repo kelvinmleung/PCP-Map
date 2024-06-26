@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 
 
-def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_components_x, pca_components_y):
+def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, pca_components_y, data_type):
     """
     :param dataset: dataset to load
     :param batch_size: batch size for Dataloader
@@ -14,18 +14,20 @@ def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_comp
     :param random_state: random seed for shuffling
     :return: Dataloaders for train, test, validation set
     """
-    a_log = np.log(data[326:328, :])
-    data[326:328, :] = a_log
+    a_log = np.log(data[326:328, :]).T
 
-    x_data = data[326:, :].T
+    s_data = data[328:, :].T
     y_data = data[:326, :].T
 
-    pca_x = PCA(n_components=pca_components_x)
-    x_data = pca_x.fit_transform(x_data)
+    pca_s = PCA(n_components=pca_components_s)
+    s_data = pca_s.fit_transform(s_data)
     pca_y = PCA(n_components=pca_components_y)
     y_data = pca_y.fit_transform(y_data)
 
-    data = np.concatenate((y_data, x_data), axis=1)
+    if data_type == 'real':
+        data = np.concatenate((y_data, a_log, s_data), axis=1)
+    else:
+        data = np.concatenate((y_data, s_data), axis=1)
 
     # split data and convert to tensor
     train_valid, test = train_test_split(
