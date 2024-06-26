@@ -31,7 +31,7 @@ parser.add_argument('--input_y_dim',    type=int, default=326, help="input data 
 parser.add_argument('--feature_dim',    type=int, default=128, help="intermediate layer feature dimension")
 parser.add_argument('--feature_y_dim',  type=int, default=128, help="intermediate layer context dimension")
 parser.add_argument('--pca_components_s', type=int, default=40, help="Number of PCA components for s data")
-parser.add_argument('--pca_components_y', type=int, default=40, help="Number of PCA components for y data")
+parser.add_argument('--pca_components_y', type=int, default=42, help="Number of PCA components for y data")
 
 parser.add_argument('--num_layers_pi',  type=int, default=2, help="depth of PICNN network")
 
