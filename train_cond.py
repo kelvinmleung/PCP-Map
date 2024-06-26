@@ -131,7 +131,7 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
 
 
 def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
-                   bestParams_picnn):
+                   bestParams_picnn, data_type):
     _, _, testData, _ = dataloader(data, batch_size, test_ratio, valid_ratio, random_state, input_x_dim, input_y_dim, data_type)
 
     # Load Best Models
@@ -143,6 +143,8 @@ def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_stat
     log_prob_picnn = model.loglik_picnn(x_test, y_test)
     pb_mean_NLL = -log_prob_picnn.mean()
     # Calculate MMD
+    input_x_dim = input_x_dim if data_type == 'real' else input_x_dim + 2
+
     zx = torch.randn(testData.shape[0], input_x_dim).to(device)
     x_generated, _ = model.gx(zx, testData[:, :input_y_dim].to(device), tol=tol)
     x_generated = x_generated.detach().to(device)
@@ -314,7 +316,7 @@ if __name__ == '__main__':
                             input_x_dim = args.pca_components_s
                         NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
                                                   args.random_state, args.pca_components_y, input_x_dim, args.tol,
-                                                  bestParams_picnn)
+                                                  bestParams_picnn, args.data_type)
 
                         columns_test = ["batch_size", "lr", "width", "width_y", "depth", "NLL", "MMD", "time", "iter"]
                         test_hist = pd.DataFrame(columns=columns_test)
@@ -349,7 +351,7 @@ if __name__ == '__main__':
         else:
             input_x_dim = args.pca_components_s
         NLL, MMD = evaluate_model(pcpmap, data, args.batch_size, args.test_ratio, args.valid_ratio,
-                                  args.random_state, args.pca_components_y, input_x_dim, args.tol, bestParams_picnn)
+                                  args.random_state, args.pca_components_y, input_x_dim, args.tol, bestParams_picnn, args.data_type)
 
         columns_test = ["batch_size", "lr", "width", "width_y", "depth", "NLL", "MMD", "time", "iter"]
         test_hist = pd.DataFrame(columns=columns_test)
