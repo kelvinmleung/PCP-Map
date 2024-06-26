@@ -132,7 +132,11 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
 
 def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
                    bestParams_picnn, data_type):
-    _, _, testData, _ = dataloader(data, batch_size, test_ratio, valid_ratio, random_state, input_x_dim, input_y_dim, data_type)
+    if data_type == 'real':
+        pca_components_s = input_x_dim
+    else:
+        pca_components_s = input_x_dim - 2
+    _, _, testData, _ = dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, input_y_dim, data_type)
 
     # Load Best Models
     model.load_state_dict(bestParams_picnn)
@@ -143,8 +147,6 @@ def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_stat
     log_prob_picnn = model.loglik_picnn(x_test, y_test)
     pb_mean_NLL = -log_prob_picnn.mean()
     # Calculate MMD
-    input_x_dim = input_x_dim if data_type == 'real' else input_x_dim + 2
-
     zx = torch.randn(testData.shape[0], input_x_dim).to(device)
     x_generated, _ = model.gx(zx, testData[:, :input_y_dim].to(device), tol=tol)
     x_generated = x_generated.detach().to(device)
