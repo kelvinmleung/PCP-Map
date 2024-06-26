@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 
 
-def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, pca_components_y, data_type):
+def dataloader(dataset, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, pca_components_y, data_type):
     """
     :param dataset: dataset to load
     :param batch_size: batch size for Dataloader
@@ -14,10 +14,10 @@ def dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_comp
     :param random_state: random seed for shuffling
     :return: Dataloaders for train, test, validation set
     """
-    a_log = np.log(data[326:328, :]).T
+    a_log = np.log(dataset[326:328, :]).T
 
-    s_data = data[328:, :].T
-    y_data = data[:326, :].T
+    s_data = dataset[328:, :].T
+    y_data = dataset[:326, :].T
 
     pca_s = PCA(n_components=pca_components_s)
     s_data = pca_s.fit_transform(s_data)

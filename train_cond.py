@@ -130,13 +130,13 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
     return trn_loader, vld_loader, train_sz
 
 
-def evaluate_model(model, data, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
+def evaluate_model(model, dataset, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
                    bestParams_picnn, data_type):
     if data_type == 'real':
         pca_components_s = input_x_dim
     else:
         pca_components_s = input_x_dim - 2
-    _, _, testData, _ = dataloader(data, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, input_y_dim, data_type)
+    _, _, testData, _ = dataloader(dataset, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, input_y_dim, data_type)
 
     # Load Best Models
     model.load_state_dict(bestParams_picnn)
@@ -311,6 +311,10 @@ if __name__ == '__main__':
                     if bool(args.save_test) is False:
                         exit(0)
                     else:
+                        if args.data_type == 'real':
+                            data_path = f'ens/{args.data}.p'
+                        else:
+                            data_path = f'ensembles_a=[0.2,1.5]/ens_{args.data}.npy'
                         data = np.load(data_path, allow_pickle=True)
                         if args.data_type == 'real':
                             input_x_dim = args.pca_components_s + 2
@@ -347,6 +351,10 @@ if __name__ == '__main__':
     if bool(args.save_test) is False:
         exit(0)
     else:
+        if args.data_type == 'real':
+            data_path = f'ens/{args.data}.p'
+        else:
+            data_path = f'ensembles_a=[0.2,1.5]/ens_{args.data}.npy'
         data = np.load(data_path, allow_pickle=True)
         if args.data_type == 'real':
             input_x_dim = args.pca_components_s + 2
