@@ -38,7 +38,7 @@ parser.add_argument('--random_state', type=int, default=42, help="Random state f
 parser.add_argument('--save', type=str, default='~/code/PCP-Map/experiments/tabcond', help="Directory to save results")
 parser.add_argument('--clip', type=bool, default=True, help="Whether to clip the weights or not")
 parser.add_argument('--tol', type=float, default=1e-12, help="LBFGS tolerance")
-parser.add_argument('--num_trials', type=int, default=10, help="Number of pilot runs")
+parser.add_argument('--num_trials', type=int, default=5, help="Number of pilot runs")
 args, unknown = parser.parse_known_args()
 
 sStartTime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
