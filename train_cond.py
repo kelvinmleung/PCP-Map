@@ -133,9 +133,9 @@ def load_data(data, test_ratio, valid_ratio, batch_size, random_state, pca_compo
 def evaluate_model(model, dataset, batch_size, test_ratio, valid_ratio, random_state, input_y_dim, input_x_dim, tol,
                    bestParams_picnn, data_type):
     if data_type == 'real':
-        pca_components_s = input_x_dim
-    else:
         pca_components_s = input_x_dim - 2
+    else:
+        pca_components_s = input_x_dim 
     _, _, testData, _ = dataloader(dataset, batch_size, test_ratio, valid_ratio, random_state, pca_components_s, input_y_dim, data_type)
 
     # Load Best Models
