@@ -80,11 +80,15 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
         bands = np.load("data/wl_ind_" + year + ".npy")
         mcmcmean = np.mean(mcmcChain[bands,:],1)
         mcmccov = np.cov(mcmcChain[bands,:])
+    else:
+        mcmcChain = None
+        mcmcmean = None
+        mcmccov = None
 
     # Preprocessing
     a_log = np.log(data[326:328, :]).T
     
-    s_data = data[326+2:, :].T
+    s_data = data[328:, :].T
     y_data = data[:326, :].T
 
     pca_s = PCA(n_components=pca_components_s)
@@ -129,7 +133,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
         s_generated = x_generated[:, 2:]
     else:
         s_generated = x_generated
-    s_generated = pca_s.inverse_transform(x_generated)
+    s_generated = pca_s.inverse_transform(s_generated)
 
     if data_type == 'real':
         a_orig = np.exp(x_generated[:, :2])
@@ -149,7 +153,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     if data_type == 'real':
         plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
     plt.plot(wls, mu_pos, 'g', alpha=0.7, label="Posterior - Transport")
-    if os.path.exists(mcmcDir):
+    if mcmcmean is not None:
         plt.plot(wls, mcmcmean, 'k', alpha=0.7, label="Posterior - MCMC")
     plt.axvspan(1300, 1450, alpha=0.8, color='black')
     plt.axvspan(1780, 2050, alpha=0.8, color='black')
@@ -167,7 +171,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     if data_type == 'real':
         plt.plot(wls, np.diag(x_isofit_gamma), 'b', alpha=0.7, label="Pos MAP - Isofit")
     plt.plot(wls, np.diag(gamma_pos), 'g', alpha=0.7, label="Posterior - Transport")
-    if os.path.exists(mcmcDir):
+    if mcmccov is not None:
         plt.plot(wls, np.diag(mcmccov), 'k', alpha=0.7, label="Posterior - MCMC")
     plt.axvspan(1300, 1450, alpha=0.8, color='black')
     plt.axvspan(1780, 2050, alpha=0.8, color='black')
@@ -186,7 +190,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
         plt.figure()
         plt.scatter(data[:, 326], data[:, 327], alpha=0.5, label='Prior')
         plt.scatter(X_star[:, 0], X_star[:, 1], alpha=0.5, label='Transport')
-        if os.path.exists(mcmcDir):
+        if mcmcChain is not None:
             plt.scatter(mcmcChain[-2, :], mcmcChain[-1, :], alpha=0.5, label='MCMC')
         plt.xlabel('AOD')
         plt.ylabel('H2O')
@@ -195,7 +199,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
         plt.title('Posterior samples - atmosphere')
         plt.savefig(f'plots/atm_pos_samp_{data_filename}.png', dpi=300)
 
-    if os.path.exists(mcmcDir) and more_plot:
+    if mcmcChain is not None and more_plot:
         relerr_isofit = abs(x_isofit_mu - mcmcmean) / abs(mcmcmean)
         relerr_transport = abs(mu_pos - mcmcmean) / abs(mcmcmean)
         weighterr_isofit = abs(x_isofit_mu - mcmcmean) / np.sqrt(np.diag(x_isofit_gamma))
