@@ -135,7 +135,7 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
         a_orig = np.exp(x_generated[:, :2])
     else:
         a_orig = data[326:328, :].T
-        
+
     X_star = np.concatenate((a_orig, s_generated), axis=1)
 
     X_star_refl = X_star[:,2:]
@@ -286,7 +286,7 @@ if __name__ == "__main__":
 
     saved_args = checkpoint['args']
 
-    input_x_dim = saved_args.input_s_dim
+    input_s_dim = saved_args.input_s_dim
     input_y_dim = saved_args.input_y_dim
     feature_dim = saved_args.feature_dim
     feature_y_dim = saved_args.feature_y_dim
@@ -302,14 +302,19 @@ if __name__ == "__main__":
     data = saved_args.data
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    prior_picnn = distributions.MultivariateNormal(torch.zeros(pca_components_s).to(device), torch.eye(pca_components_s).to(device))
+
+    if data_type == 'real':
+        input_dim = pca_components_s + 2
+    else:
+        input_dim = pca_components_s
+    prior_picnn = distributions.MultivariateNormal(torch.zeros(input_dim).to(device), torch.eye(input_dim).to(device))
 
     # Build PCP-Map
-    picnn = PICNN(pca_components_s, pca_components_y, feature_dim, feature_y_dim, 1, num_layers, reparam=reparam)
+    picnn = PICNN(input_dim, pca_components_y, feature_dim, feature_y_dim, 1, num_layers, reparam=reparam)
     pcpmap = PCPMap(prior_picnn, picnn).to(device)
 
     pcpmap.load_state_dict(checkpoint['state_dict_picnn'])
 
-    x_generated = plot_for_comparison(data, 10000, pca_components_s, tol, pcpmap, pca_components_y, test_ratio, random_state, data_type, args.extra_plots) # data_path to be changed
+    x_generated = plot_for_comparison(data, 10000, pca_components_s, tol, pcpmap, pca_components_y, test_ratio, random_state, data_type, args.extra_plots) 
 
     print(x_generated)
