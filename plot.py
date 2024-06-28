@@ -76,10 +76,14 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     # load mcmc
     if os.path.exists(mcmcDir):
         mcmcChain = np.load(mcmcDir)
-        mcmcChain = mcmcChain[:, ::20]
-        bands = np.load("data/wl_ind_" + year + ".npy")
-        mcmcmean = np.mean(mcmcChain[bands,:],1)
-        mcmccov = np.cov(mcmcChain[bands,:])
+        if data_type == 'real':
+            mcmcChain = mcmcChain[:, ::20]
+            bands = np.load("data/wl_ind_" + year + ".npy")
+            mcmcmean = np.mean(mcmcChain[bands,:],1)
+            mcmccov = np.cov(mcmcChain[bands,:])
+        else:
+            mcmcmean = np.mean(mcmcChain[2:,:],1)
+            mcmccov = np.cov(mcmcChain[2:,:])
     else:
         mcmcChain = None
         mcmcmean = None
