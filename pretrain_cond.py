@@ -31,7 +31,7 @@ parser.add_argument('--input_y_dim', type=int, default=326, help="Input data non
 parser.add_argument('--pca_components_s', type=int, default=40, help="Number of PCA components for s data")
 parser.add_argument('--pca_components_y', type=int, default=42, help="Number of PCA components for y data")
 
-parser.add_argument('--num_epochs', type=int, default=1, help="Number of pre-training epochs")
+parser.add_argument('--num_epochs', type=int, default=15, help="Number of pre-training epochs")
 parser.add_argument('--test_ratio', type=float, default=0.10, help="Test set ratio")
 parser.add_argument('--valid_ratio', type=float, default=0.10, help="Validation set ratio")
 parser.add_argument('--random_state', type=int, default=42, help="Random state for splitting dataset")
