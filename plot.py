@@ -154,8 +154,8 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
     data_filename = os.path.splitext(data_filename)[0]
     plt.figure()
     plt.plot(wls, x_truth, 'r', alpha=1, linewidth=3, label="Truth")
-    if data_type == 'real':
-        plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
+    # if data_type == 'real':
+    #     plt.plot(wls, x_isofit_mu, 'b', alpha=0.7, label="Pos MAP - Isofit")
     plt.plot(wls, mu_pos, 'g', alpha=0.7, label="Posterior - Transport")
     if mcmcmean is not None:
         plt.plot(wls, mcmcmean, 'k', alpha=0.7, label="Posterior - MCMC")
@@ -172,8 +172,8 @@ def plot_for_comparison(data, num_sample, pca_components_s, tol, bestParams_picn
         plt.savefig(f'plots/refl_pos_mean_{data_filename}_synthetic.png', dpi=300)
 
     plt.figure()
-    if data_type == 'real':
-        plt.plot(wls, np.diag(x_isofit_gamma), 'b', alpha=0.7, label="Pos MAP - Isofit")
+    # if data_type == 'real':
+    #     plt.plot(wls, np.diag(x_isofit_gamma), 'b', alpha=0.7, label="Pos MAP - Isofit")
     plt.plot(wls, np.diag(gamma_pos), 'g', alpha=0.7, label="Posterior - Transport")
     if mcmccov is not None:
         plt.plot(wls, np.diag(mcmccov), 'k', alpha=0.7, label="Posterior - MCMC")
